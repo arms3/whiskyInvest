@@ -1,0 +1,24 @@
+# run: conda env create --file environment.yml
+name: whiskyInvest
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+- python>=3.6
+- anaconda
+- pip
+- flask
+- requests
+- pandas
+- numpy
+- conda-forge::dash
+- conda-forge::dash-renderer
+- conda-forge::dash-core-components
+- conda-forge::dash-html-components
+- conda-forge::plotly
+- conda-forge::requests-futures
+- scipy
+#- pip:
+#  - http://w
+
+

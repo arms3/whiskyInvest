@@ -1,0 +1,280 @@
+import flask
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+from dash.dependencies import Input, Output
+import os
+from random import randint
+import plotly.graph_objs as go
+
+# Load up and analyse data
+from fetch import load_all_data
+
+pitches, all_whisky = load_all_data()
+pitches['annual_price_increase'] = pitches.slope * 365.25
+
+server = flask.Flask(__name__)
+external_stylesheets = [
+    # 'https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css',
+    'https://stackpath.bootstrapcdn.com/bootswatch/4.2.1/lux/bootstrap.min.css',
+    # 'https://fonts.googleapis.com/css?family=Montserrat:400,700',
+    ]
+
+server.secret_key = os.environ.get('secret_key', str(randint(0, 1000000)))
+app = dash.Dash(__name__, server=server,
+                external_stylesheets=external_stylesheets)
+# Since we're adding callbacks to elements that don't exist in the app.layout,
+# Dash will raise an exception to warn us that we might be
+# doing something wrong.
+# In this case, we're adding the elements through a callback, so we can ignore
+# the exception.
+app.config.suppress_callback_exceptions = True
+
+def create_pitch(dff):
+    """Creates the whisky returns by pitch chart"""
+    data = []
+    for name, grp in dff.groupby('distillery'):
+        data.append(
+            {
+                'x': grp.days_to_close_spread,
+                'y': grp.annual_return,
+                'text': grp.whisky_type,
+                'mode': 'markers',
+                'name': name,
+                'marker': {'size': 14,
+                           'opacity': 0.5},
+            }
+        )
+
+    figure = {
+        'layout': {
+            'title': None,
+            'xaxis': {'title': 'Number of days to close bid ask spread'},
+            'yaxis': {'title': 'Annual % return'},
+            'hovermode': 'closest',
+            'font': {'family':'inherit'},
+            'height': 450,
+            'margin': {'l': 50, 'b': 50, 'r': 10, 't': 10},
+            },
+        'data': data,
+    }
+    return figure
+
+
+app.layout = html.Div([
+    dcc.Location(id='url', refresh=False),
+    html.Div(id='page-content')
+])
+
+about_page_layout = html.Div([
+    # Navbar
+    html.Nav(children=[
+        html.Div([
+            html.A('Home', className='navbar-brand', href='/'),
+            html.Div([
+                html.Ul([
+                    html.Li([html.A('About', className='nav-link', href='/about')], className='nav-item'),
+                    html.Li([html.A('Github', className='nav-link', href='https://github.com/arms3')], className='nav-item')
+                ], className='navbar-nav'),
+                html.Ul([],className='nav navbar-nav ml-auto'),
+            ], id='navbarResponsive',className='collapse navbar-collapse'),
+        ], className='container')
+    ], className="navbar navbar-expand-lg navbar-dark bg-dark"),
+
+    # Main container
+    # Header
+    html.Div([
+        html.Div([
+            html.Div([
+                html.Div([
+                    html.H1('What\'s this all about?', style={'margin-top':30}),
+                    html.P('Indeed.'),
+                ], className='col-lg-12')
+            ], className='row')
+        ], className='page-header'),
+    ], className='container')
+])
+
+# Main chart page
+page_1_layout = html.Div([
+    # Navbar
+    html.Nav(children=[
+        html.Div([
+            html.A('Home', className='navbar-brand', href='/'),
+            html.Div([
+                html.Ul([
+                    html.Li([html.A('About', className='nav-link', href='/about')], className='nav-item'),
+                    html.Li([html.A('Github', className='nav-link', href='https://github.com/arms3')], className='nav-item')
+                ], className='navbar-nav'),
+                html.Ul([],className='nav navbar-nav ml-auto'),
+            ], id='navbarResponsive',className='collapse navbar-collapse'),
+        ], className='container')
+    ], className="navbar navbar-expand-lg navbar-dark bg-dark"),
+
+    # Main container
+    html.Div([
+        # Header
+        html.Div([
+            html.Div([
+                html.Div([
+                    html.H1('Whisky Price Explorer', style={'margin-top':30}),
+                    html.P('This is some text'),
+                ], className='col-lg-12')
+            ], className='row')
+        ], className='page-header'),
+        # Row containing charts
+        html.Div([
+            # Left Side
+            html.Div([
+                html.Div([
+                    # Left chart
+                    html.Div('Whisky Predicted Returns', className='card-header'),
+                    html.Div([
+                        # Distillery picker
+                        html.Div([
+                            html.Div([
+                                dcc.Dropdown(
+                                    id='distillery-dropdown',
+                                    options=pitches[['formattedDistillery', 'distillery']].drop_duplicates() \
+                                        .rename({'formattedDistillery': 'label', 'distillery': 'value'}, axis=1).to_dict(
+                                        orient='rows'),
+                                    multi=True,
+                                ),
+                            ], className='col-lg-9', style={'padding-left':'0px'}),
+                            html.Div([
+                                dcc.RadioItems(
+                                    id='radio-high-correlation',
+                                    options=[{'label':'All data','value':1},{'label':'High R Value','value':2}],
+                                    value=2,
+                                    labelStyle={'display': 'inline-block', 'padding':'2px'},
+                                ),
+                            ], className='float-lg-right'),
+                        ], className='row', style={'margin':'5px'}),
+                        # Malt picker
+                        html.Div([
+                            dcc.Checklist(
+                                id='grain-malt-chooser',
+                                options=[{'label':i,'value':i} for i in ['Single Malt','Grain']],
+                                values=['Single Malt','Grain'],
+                                labelStyle={'display': 'inline-block', 'margin': '5px'},),
+                        ], className='row', style={'margin':'5px'}),
+                        # Chart row
+                        html.Div([
+                            dcc.Graph(
+                                id='whisky-return-graph',
+                                hoverData={'points': [{'text': 'auchroisk_2012_Q4_HHR'}]},
+                                figure=create_pitch(pitches),
+                                style={'height': 450, 'width': 850,},
+                            ),
+                        ], className='row', style={'margin':'5px'})
+                    ],className='section'),
+                ],className='card border-secondary mb-3',style={'height':600}), #col-lg-6
+            ],className='col-lg-6'),
+            # Right Side
+            html.Div([
+                html.Div([
+                    html.Div('Whisky Daily Price History',className='card-header'),
+                    dcc.Graph(id='single-whisky-chart', style={'width': 850,'height':550}),
+                ],className='card border-secondary mb-3', style={'height':600}), #'col-lg-6'
+            ],className='col-lg-6'),
+        ],className='row', style={'display':'flex'}),
+
+        # Footer
+        html.Footer([html.Div([html.Div([html.Ul([
+            html.Li(html.A('Back to top',href='#top'),className='float-lg-right'),
+            html.Li(html.A('GitHub',href='https://github.com/arms3')),
+        ],className='list-unstyled'),
+        ],className='col-lg-12'),],className='row'),],id='footer'),
+    ], className="container"),
+])
+
+
+# Update the index
+@app.callback(Output('page-content', 'children'),
+              [Input('url', 'pathname')])
+def display_page(pathname):
+    if pathname == '/':
+        return page_1_layout
+    elif pathname == '/about':
+        return about_page_layout
+    else:
+        return page_1_layout
+    # You could also return a 404 "URL not found" page here
+
+
+@app.callback(
+    Output('single-whisky-chart', 'figure'),
+    [Input('whisky-return-graph', 'hoverData')])
+def update_single_whisky(hoverData):
+    whisky_name = hoverData['points'][0]['text']
+    dff = all_whisky[all_whisky['whisky_type'] == whisky_name]
+    # title = '<b>{}</b><br>{}'.format(country_name, xaxis_column_name)
+    return create_time_series(dff, 'Linear', whisky_name)
+
+
+@app.callback(
+    Output('whisky-return-graph', 'figure'),
+    [Input('distillery-dropdown', 'value'), Input('radio-high-correlation','value'),
+     Input('grain-malt-chooser', 'values'),]
+)
+def update_pitches(distilleries, radio, malt_grain):
+    # Check we have some distilleries selected otherwise show all
+    if distilleries == None:
+        dff = pitches
+    elif len(distilleries) == 0:
+        dff = pitches
+    else:
+        dff = pitches[pitches['distillery'].isin(distilleries)]
+
+    if radio == 2:
+        dff = dff[dff.r_value > 0.95]
+    else:
+       pass
+
+    malt_grain_format = {'Grain':'GRAIN','Single Malt':'SINGLE_MALT'}
+    if len(malt_grain) == 0:
+        pass
+    else:
+        malt_grain = [malt_grain_format[x] for x in malt_grain]
+        dff = dff[dff.categoryName.isin(malt_grain)]
+
+    return create_pitch(dff)
+
+
+def create_time_series(dff, axis_type, title):
+    dff = dff.merge(pitches,how='inner',on='pitchId')
+    dff['predict'] = dff.day * dff.slope + dff.intercept
+
+    return {
+        'data': [go.Scatter(
+            x=dff['dealDate'],
+            y=dff['priceAvg'],
+            mode='lines+markers',
+            name='Average daily price (£)',
+            ),
+            go.Scatter(x=dff['dealDate'],
+            y=dff['predict'],
+            mode='lines',
+            name='Predicted daily price (£)',),
+        ],
+        'layout': {
+            'title': None,
+            'font': {'family': 'inherit'},
+            'hovermode':'closest',
+            'legend':{'orientation':'h'},
+            # 'height': 450,
+            # 'margin': {'l': 20, 'b': 30, 'r': 10, 't': 10},
+            # 'annotations': [{
+            #     'x': 0, 'y': 0.85, 'xanchor': 'left', 'yanchor': 'bottom',
+            #     'xref': 'paper', 'yref': 'paper', 'showarrow': False,
+            #     'align': 'left', 'bgcolor': 'rgba(255, 255, 255, 0.5)',
+            #     'text': title
+            # }],
+            'yaxis': {'type': 'linear' if axis_type == 'Linear' else 'log', 'title':'Price, £'},
+            'xaxis': {'showgrid': False}
+        }
+    }
+
+
+if __name__ == '__main__':
+    app.server.run(debug=True, threaded=True)

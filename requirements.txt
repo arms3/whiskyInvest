@@ -1,0 +1,10 @@
+flask
+requests
+pandas
+numpy
+dash
+dash_core_components
+dash_html_components
+plotly
+requests_futures
+scipy
