@@ -74,7 +74,8 @@ about_page_layout = html.Div([
             html.Div([
                 html.Ul([
                     html.Li([html.A('About', className='nav-link', href='/about')], className='nav-item'),
-                    html.Li([html.A('Github', className='nav-link', href='https://github.com/arms3')], className='nav-item')
+                    html.Li([html.A('Github', className='nav-link', href='https://github.com/arms3/whiskyInvest')],
+                            className='nav-item')
                 ], className='navbar-nav'),
                 html.Ul([],className='nav navbar-nav ml-auto'),
             ], id='navbarResponsive',className='collapse navbar-collapse'),
