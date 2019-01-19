@@ -42,7 +42,7 @@ def create_pitch(dff):
     figure = {
         'layout': dict(title=None, xaxis={'title': 'Number of days to close bid ask spread'},
                        yaxis={'title': 'Annual % return'}, hovermode='closest', font={'family': 'inherit'},
-                       autosize=True, modebar={'orientation': 'h'},
+                       autosize=True, modebar={'orientation': 'h'}, legend={'orientation': 'v'},
                        hoverlabel=dict(bordercolor='rgba(255, 255, 255, 0)', font={'color': '#ffffff'}),
                        margin={'l': 50, 'b': 50, 'r': 10, 't': 10}),
         'data': data,
@@ -150,11 +150,14 @@ page_1_layout = html.Div([
                         ], className='row', style={'margin':'5px'}),
                         # Chart row
                         html.Div([
-                            dcc.Graph(
-                                id='whisky-return-graph',
-                                hoverData={'points': [{'text': 'auchroisk_2012_Q4_HHR'}]},
-                                figure=create_pitch(pitches),
-                            ),
+                            html.Div([
+                                dcc.Graph(
+                                    id='whisky-return-graph',
+                                    hoverData={'points': [{'text': 'auchroisk_2012_Q4_HHR'}]},
+                                    # style={'width':800},
+                                    figure=create_pitch(pitches),
+                                ),
+                            ],className='container',style={'overflow':'hidden'}),
                         ], className='row', style={'margin':'5px'})
                     ],className='section'),
                 ],className='card border-secondary mb-3',style={'height':600}), #col-lg-6
