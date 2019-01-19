@@ -35,27 +35,16 @@ def create_pitch(dff):
     data = []
     for name, grp in dff.groupby('distillery'):
         data.append(
-            {
-                'x': grp.days_to_close_spread,
-                'y': grp.annual_return,
-                'text': grp.whisky_type,
-                'mode': 'markers',
-                'name': name,
-                'marker': {'size': 14,
-                           'opacity': 0.5},
-            }
+            dict(x=grp.days_to_close_spread, y=grp.annual_return, text=grp.whisky_type, mode='markers', name=name,
+                 marker=dict(size=17, opacity=0.6, line={'color': 'rgb(255, 255, 255)', 'width': 1}))
         )
 
     figure = {
-        'layout': {
-            'title': None,
-            'xaxis': {'title': 'Number of days to close bid ask spread'},
-            'yaxis': {'title': 'Annual % return'},
-            'hovermode': 'closest',
-            'font': {'family':'inherit'},
-            'height': 450,
-            'margin': {'l': 50, 'b': 50, 'r': 10, 't': 10},
-            },
+        'layout': dict(title=None, xaxis={'title': 'Number of days to close bid ask spread'},
+                       yaxis={'title': 'Annual % return'}, hovermode='closest', font={'family': 'inherit'},
+                       autosize=True, modebar={'orientation': 'h'},
+                       hoverlabel=dict(bordercolor='rgba(255, 255, 255, 0)', font={'color': '#ffffff'}),
+                       margin={'l': 50, 'b': 50, 'r': 10, 't': 10}),
         'data': data,
     }
     return figure
@@ -165,7 +154,6 @@ page_1_layout = html.Div([
                                 id='whisky-return-graph',
                                 hoverData={'points': [{'text': 'auchroisk_2012_Q4_HHR'}]},
                                 figure=create_pitch(pitches),
-                                style={'height': 450, 'width': 850,},
                             ),
                         ], className='row', style={'margin':'5px'})
                     ],className='section'),
@@ -175,7 +163,9 @@ page_1_layout = html.Div([
             html.Div([
                 html.Div([
                     html.Div('Whisky Daily Price History',className='card-header'),
-                    dcc.Graph(id='single-whisky-chart', style={'width': 850,'height':550}),
+                    dcc.Graph(id='single-whisky-chart',
+                              # style={'width': 850,'height':550},
+                              ),
                 ],className='card border-secondary mb-3', style={'height':600}), #'col-lg-6'
             ],className='col-lg-6'),
         ],className='row', style={'display':'flex'}),
@@ -209,7 +199,6 @@ def display_page(pathname):
 def update_single_whisky(hoverData):
     whisky_name = hoverData['points'][0]['text']
     dff = all_whisky[all_whisky['whisky_type'] == whisky_name]
-    # title = '<b>{}</b><br>{}'.format(country_name, xaxis_column_name)
     return create_time_series(dff, 'Linear', whisky_name)
 
 
@@ -258,22 +247,10 @@ def create_time_series(dff, axis_type, title):
             mode='lines',
             name='Predicted daily price (£)',),
         ],
-        'layout': {
-            'title': None,
-            'font': {'family': 'inherit'},
-            'hovermode':'closest',
-            'legend':{'orientation':'h'},
-            # 'height': 450,
-            # 'margin': {'l': 20, 'b': 30, 'r': 10, 't': 10},
-            # 'annotations': [{
-            #     'x': 0, 'y': 0.85, 'xanchor': 'left', 'yanchor': 'bottom',
-            #     'xref': 'paper', 'yref': 'paper', 'showarrow': False,
-            #     'align': 'left', 'bgcolor': 'rgba(255, 255, 255, 0.5)',
-            #     'text': title
-            # }],
-            'yaxis': {'type': 'linear' if axis_type == 'Linear' else 'log', 'title':'Price, £'},
-            'xaxis': {'showgrid': False}
-        }
+        'layout': dict(title=None, font={'family': 'inherit'}, hovermode='closest', legend={'orientation': 'h'},
+                       margin={'l': 80, 'b': 20, 'r': 20, 't': 20},
+                       yaxis={'type': 'linear' if axis_type == 'Linear' else 'log', 'title': 'Price, £'},
+                       xaxis={'showgrid': False})
     }
 
 
