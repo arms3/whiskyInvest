@@ -49,6 +49,25 @@ def create_pitch(dff):
     }
     return figure
 
+# Default template to load. Can customize favicon
+app.index_string = '''
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>Whisky Invest</title>
+        {%favicon%}
+        {%css%}
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+        </footer>
+    </body>
+</html>
+'''
 
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
@@ -90,6 +109,7 @@ page_1_layout = html.Div([
     # Navbar
     html.Nav(children=[
         html.Div([
+            html.Img(src='/assets/whiskey.svg',height=40),
             html.A('Home', className='navbar-brand', href='/'),
             html.Div([
                 html.Ul([
@@ -175,10 +195,14 @@ page_1_layout = html.Div([
 
         # Footer
         html.Footer([html.Div([html.Div([html.Ul([
-            html.Li(html.A('Back to top',href='#top'),className='float-lg-right'),
-            html.Li(html.A('GitHub',href='https://github.com/arms3')),
-        ],className='list-unstyled'),
-        ],className='col-lg-12'),],className='row'),],id='footer'),
+                    html.Li(html.A('Back to top',href='#top'),className='float-lg-right'),
+                    html.Li(html.A('GitHub',href='https://github.com/arms3')),
+                ],className='list-unstyled'),
+            ],className='col-lg-12'),],className='row'),
+            html.Div([
+                '''<html><div>Icons made by <a href="https://www.freepik.com/" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" 			    title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" 			    title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div></html>'''
+            ]),
+        ],id='footer'),
     ], className="container"),
 ])
 
