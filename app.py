@@ -3,6 +3,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
+from dash_html_template import Template
 import os
 from random import randint
 import plotly.graph_objs as go
@@ -186,6 +187,8 @@ page_1_layout = html.Div([
             html.Div([
                 html.Div([
                     html.Div('Whisky Daily Price History',className='card-header'),
+                    # Template.from_string('<H1>Hello</H1>'),
+                    # html.Div([html.P('Hello',className='lead')], className='row', style={'margin':'5px'}),
                     dcc.Graph(id='single-whisky-chart',
                               # style={'width': 850,'height':550},
                               ),
@@ -198,10 +201,10 @@ page_1_layout = html.Div([
                     html.Li(html.A('Back to top',href='#top'),className='float-lg-right'),
                     html.Li(html.A('GitHub',href='https://github.com/arms3')),
                 ],className='list-unstyled'),
+            dcc.Markdown('''Created by [Angus Sinclair](https://github.com/arms3)'''),
+            Template.from_string(
+                '''<P>Icons made by <a href="https://www.freepik.com/" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" 			    title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" 			    title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></P>'''),
             ],className='col-lg-12'),],className='row'),
-            html.Div([
-                '''<html><div>Icons made by <a href="https://www.freepik.com/" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" 			    title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" 			    title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div></html>'''
-            ]),
         ],id='footer'),
     ], className="container"),
 ])

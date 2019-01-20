@@ -8,3 +8,4 @@ dash_html_components
 plotly
 requests_futures
 scipy
+git+https://github.com/masdeseiscaracteres/dash-html-template.git
