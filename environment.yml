@@ -18,7 +18,8 @@ dependencies:
 - conda-forge::plotly
 - conda-forge::requests-futures
 - scipy
-#- pip:
+- pip:
+    - git+https://github.com/masdeseiscaracteres/dash-html-template.git
 #  - http://w
 
 
