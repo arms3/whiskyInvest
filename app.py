@@ -11,6 +11,8 @@ import plotly.graph_objs as go
 # Load up and analyse data
 from fetch import load_all_data
 
+# TODO: use flask-cache to save calls to whisky site
+# https://pythonhosted.org/Flask-Cache/
 pitches, all_whisky = load_all_data()
 pitches['annual_price_increase'] = pitches.slope * 365.25
 
@@ -75,6 +77,7 @@ app.layout = html.Div([
     html.Div(id='page-content')
 ])
 
+# TODO: Refactor common parts as single functions
 about_page_layout = html.Div([
     # Navbar
     html.Nav(children=[
@@ -106,6 +109,8 @@ about_page_layout = html.Div([
 ])
 
 # Main chart page
+# TODO: Update this to use dash-bootsrap components
+# https://dash-bootstrap-components.opensource.asidatascience.com/
 page_1_layout = html.Div([
     # Navbar
     html.Nav(children=[
