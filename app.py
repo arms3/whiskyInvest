@@ -7,6 +7,7 @@ from dash_html_template import Template
 import os
 from random import randint
 import plotly.graph_objs as go
+import re
 
 # Load up and analyse data
 from fetch import load_all_data
@@ -51,6 +52,9 @@ def create_pitch(dff):
         'data': data,
     }
     return figure
+
+def format_markdown(text):
+    return re.sub(r'\n\s+','\n',text)
 
 # Default template to load. Can customize favicon
 app.index_string = '''
@@ -101,7 +105,12 @@ about_page_layout = html.Div([
             html.Div([
                 html.Div([
                     html.H1('What\'s this all about?', style={'margin-top':30}),
-                    html.P('Indeed.'),
+                    dcc.Markdown(format_markdown('''
+                    - Fetches daily pricing from [whiskyinvestdirect.com](https://www.whiskyinvestdirect.com/)
+                    - Evaluates performance via linear regression
+                    - Creates a [dashboard](https://whisky-invest.herokuapp.com/) to display best performance whiskies
+                    - Adjusts for exchange fees and holding costs
+                    ''')),
                 ], className='col-lg-12')
             ], className='row')
         ], className='page-header'),
@@ -134,7 +143,7 @@ page_1_layout = html.Div([
             html.Div([
                 html.Div([
                     html.H1('Whisky Price Explorer', style={'margin-top':30}),
-                    html.P('This is some text'),
+                    html.P(dcc.Markdown('Top performing whiskies from [whiskyinvestdirect.com](https://www.whiskyinvestdirect.com/)')),
                 ], className='col-lg-12')
             ], className='row')
         ], className='page-header'),
