@@ -2,6 +2,7 @@ import dask.dataframe as dd
 from dateutil import parser
 import pandas as pd
 
+# Eventually change this to a cloud bucket
 PRICING = 'D:\data\whisky\pricing.csv'
 
 def process_to_hourly():
@@ -15,6 +16,7 @@ def process_to_hourly():
     # Read file and fix time
     df = dd.read_csv(PRICING, parse_dates=False)
     unique_time = df.time.unique()
+    # Process timezones explicitly to handle issues
     fix_time = unique_time.map(lambda x: pd.Timestamp(parser.parse(x, tzinfos=tzinfos)) \
                                .tz_convert('UTC'), meta=pd.Series([], dtype='datetime64[ns, UTC]', name='fix_time'))
     fix_time = fix_time.dt.floor('h')  # Get hour only
