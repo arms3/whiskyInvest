@@ -299,4 +299,4 @@ def create_time_series(dff, axis_type, title):
 
 
 if __name__ == '__main__':
-    app.server.run(debug=True, threaded=True)
+    app.server.run(debug=False, threaded=True)
