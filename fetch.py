@@ -166,12 +166,19 @@ def calc_returns(pitches):
     pitches['annual_return'] = 100 * 365.25 * pitches.adjusted_slope / pitches.fee_adjusted_purchase_cost
     return pitches
 
+@checkpoint('mean_daily_spread.csv')
+def alls3cache(s3):
+    return pd.read_csv(s3.open('whisky-pricing/mean_daily_spread.csv', mode='rb'))
+
+@checkpoint('pitch_models.csv')
+def pitchcache(s3):
+    return pd.read_csv(s3.open('whisky-pricing/pitch_models.csv', mode='rb'))
 
 def get_from_s3():
     # Uses default config from environment variables
     s3 = S3FileSystem(anon=False)
-    all_whisky = pd.read_csv(s3.open('whisky-pricing/mean_daily_spread.csv', mode='rb'))
-    analysed_pitches = pd.read_csv(s3.open('whisky-pricing/pitch_models.csv', mode='rb'))
+    all_whisky = alls3cache(s3)
+    analysed_pitches = pitchcache(s3)
     pitches = get_pitches()
 
     pitches = pitches.set_index('pitchId')
