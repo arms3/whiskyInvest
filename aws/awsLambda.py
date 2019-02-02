@@ -68,6 +68,7 @@ class SplineRegressor(BaseEstimator, RegressorMixin):
 
 def get_hourly():
     # Load up full data
+    print('Loading hourly data...')
     tzinfos = {'BST': 3600,
                'GMT': 0}
 
@@ -79,6 +80,7 @@ def get_hourly():
                                .tz_convert('UTC'), meta=pd.Series([], dtype='datetime64[ns, UTC]', name='fix_time'))
 
     # Regroup to hourly
+    print('Regrouping to hourly...')
     fix_time = fix_time.dt.floor('h')  # Get hour only
     unique_time = dd.concat([unique_time, fix_time], axis=1, )
     unique_time.columns = ['time', 'fixed_time']
@@ -87,9 +89,9 @@ def get_hourly():
     df = df.compute()
     df.drop('time', axis=1, inplace=True)
     df.rename({'fixed_time': 'time'}, axis=1, inplace=True)
-    print(df.head(3), df.columns)
 
     # Calculate spreads
+    print('Calculating spreads...')
     max_buy = df[df['buy'] == 1].groupby(['pitchId', 'time'])[['limit']].max()
     min_sell = df[df['buy'] == 0].groupby(['pitchId', 'time'])[['limit']].min()
     del df
@@ -99,7 +101,6 @@ def get_hourly():
     spreads = spreads.reset_index()
     spreads.columns = ['pitchId', 'time', 'max_buy', 'min_sell']
     spreads.set_index('time', inplace=True)
-
     return spreads
 
 
@@ -115,6 +116,7 @@ def run_regression(df):
     lr = OutlierLinearRegression(0.5, SplineRegressor(smooth_factor=11, order=1))
     linreg = {}
     preds = []
+    print('Running regression...')
     for pitch, spread in df.groupby('pitchId'):
         X = index2int(spread.max_buy.dropna().index)
         y = spread.max_buy.dropna().values
@@ -128,9 +130,9 @@ def run_regression(df):
 
     # Combine preds append to df and save
     print('Combining daily predictions and uploading...')
-    preds = pd.concat(preds, axis=0).reset_index().set_index(['pitchId','time'])
-    df = df.reset_index().set_index('pitchId').join(preds, on=['pitchId','time']).reset_index().set_index('time')
-    print(df.head(3),df.columns)
+    preds = pd.concat(preds, axis=0).reset_index()
+    df = df.reset_index().merge(preds, on=['pitchId','time']).reset_index().set_index('time')
+    df.drop('index',axis=1, inplace=True) # Remove the rangindex artifact created in merge
     df.to_csv('spreads.csv')
     bucket.upload_file('spreads.csv', 'spreads.csv')
 
@@ -145,7 +147,8 @@ def run_regression(df):
     dayseconds = 24 * 3600 * 1e9  # nanoseconds in a day
 
     # Calculate returns
-    pitches = df.sort_index(ascending=True).dropna().reset_index().groupby('pitchId').last()
+    print('Calculating returns...')
+    pitches = df.sort_index(ascending=True).dropna().reset_index().groupby('pitchId').last() # Warning here about converting to naive datetime not sure why
     pitches = pitches.join(linreg)
     pitches = pitches.dropna()
     pitches.slope = pitches.slope*dayseconds
@@ -167,9 +170,7 @@ if __name__ == '__main__':
     print('Reticulating splines...')
     s3 = boto3.resource('s3')
     bucket = s3.Bucket('whisky-pricing')
-    print('Loading hourly data...')
     df = get_hourly()
     print(df.head())
-    print('Running regression...')
     pitches = run_regression(df)
     print(pitches.head(3))
