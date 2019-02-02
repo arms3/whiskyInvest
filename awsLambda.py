@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 from sklearn.base import BaseEstimator, RegressorMixin
@@ -6,15 +7,7 @@ import pandas as pd
 from dateutil import parser
 import dask.dataframe as dd
 import gc
-import os
 import boto3
-
-
-# AWS
-AWS_ACCESS_KEY_ID = os.environ.get["AWS_ACCESS_KEY_ID"]
-AWS_SECRET_ACCESS_KEY = os.environ.get["AWS_SECRET_ACCESS_KEY"]
-s3 = boto3.resource('s3')
-bucket = s3.Bucket('whisky-pricing')
 
 
 class OutlierLinearRegression(BaseEstimator, RegressorMixin):
@@ -78,7 +71,7 @@ def get_hourly():
     tzinfos = {'BST': 3600,
                'GMT': 0}
 
-    df = dd.read_csv('days/*', parse_dates=False)
+    df = dd.read_csv('s3://whisky-pricing/20*.csv', parse_dates=False)
     unique_time = df.time.unique()
     fix_time = unique_time.map(lambda x: pd.Timestamp(parser.parse(x, tzinfos=tzinfos)) \
                                .tz_convert('UTC'), meta=pd.Series([], dtype='datetime64[ns, UTC]', name='fix_time'))
@@ -93,7 +86,9 @@ def get_hourly():
 
     # Calculate spreads
     max_buy = df[df['buy'] == 1].groupby(['pitchId', 'fixed_time'])[['limit']].max()
-    min_sell = df[df['buy'] == 0].groupby(['pitchId', 'fixed_time']).limit.min()
+    min_sell = df[df['buy'] == 0].groupby(['pitchId', 'fixed_time'])[['limit']].min()
+    del df
+    gc.collect()
     spreads = max_buy.join(min_sell, on=['pitchId', 'fixed_time'], how='outer', rsuffix='r')
     spreads.columns = ['max_buy', 'min_sell']
     spreads = spreads.reset_index()
@@ -101,14 +96,17 @@ def get_hourly():
     spreads.set_index('time', inplace=True)
 
     # Free some RAM
-    del max_buy, min_sell, df
+    del max_buy, min_sell
     gc.collect()
 
     # Dump results to csv - this need to be on aws using boto3
+    # TODO: Assess if this is necessary
+    print('Uploading spreads...')
     spreads.to_csv('spreads.csv')
     bucket.upload_file('spreads.csv', 'spreads.csv')
 
     # Regroup to daily # Save daily to csv
+    print('Uploading daily pricing...')
     spreads.groupby('pitchId').resample('D')[['min_sell', 'max_buy']].mean().to_csv('mean_daily_spread.csv')
     bucket.upload_file('mean_daily_spread.csv', 'mean_daily_spread.csv')
 
@@ -142,13 +140,27 @@ def run_regression(df):
     pitches['annual_return'] = 100 * 365.25 * pitches.adjusted_slope / pitches.fee_adjusted_purchase_cost
 
     # Save csv
+    print('Uploading model...')
     pitches.to_csv('pitch_models.csv')
     bucket.upload_file('pitch_models.csv', 'pitch_models.csv')
 
     return pitches
 
 
-if __name__ == '__main__':
+def lambda_function(context, event):
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket('whisky-pricing')
     df = get_hourly()
     pitches = run_regression(df)
-    pitches.head()
+    print(pitches.head(3))
+
+
+if __name__ == '__main__':
+    print('Reticulating splines...')
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket('whisky-pricing')
+    print('Loading hourly data...')
+    df = get_hourly()
+    print('Running regression...')
+    pitches = run_regression(df)
+    print(pitches.head(3))
