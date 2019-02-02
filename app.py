@@ -46,8 +46,8 @@ def create_pitch(dff):
 
     figure = {'layout':
                   dict(title=None,
-                       xaxis={'title': 'Number of days to close bid ask spread', 'rangemode':'nonnegative'},
-                       yaxis={'title': 'Annual % return', 'rangemode':'nonnegative'},
+                       xaxis={'title': 'Number of days to close bid ask spread', 'rangemode':'nonnegative', 'showline': False, 'zeroline': False, },
+                       yaxis={'title': 'Annual % return', 'rangemode': 'nonnegative', 'showline': False, 'zeroline': False, },
                        hovermode='closest', font={'family': 'inherit'}, autosize=True,
                        modebar={'orientation': 'h'}, legend={'orientation': 'v'},
                        hoverlabel=dict(bordercolor='rgba(255, 255, 255, 0)', font={'color': '#ffffff'}),
