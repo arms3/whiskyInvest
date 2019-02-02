@@ -130,6 +130,7 @@ def run_regression(df):
     print('Combining daily predictions and uploading...')
     preds = pd.concat(preds, axis=0).reset_index().set_index(['pitchId','time'])
     df = df.reset_index().set_index('pitchId').join(preds, on=['pitchId','time']).reset_index().set_index('time')
+    print(df.head(3),df.columns)
     df.to_csv('spreads.csv')
     bucket.upload_file('spreads.csv', 'spreads.csv')
 
