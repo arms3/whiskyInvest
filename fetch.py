@@ -186,10 +186,9 @@ def get_from_s3():
     pitches = pitches.join(analysed_pitches, how='inner') # Ignores missing pitches as get_pitches filters out GBP
     # Clear old returns calculations and recalculate
     pitches.drop(['max_buy', 'min_sell', 'spread_fee_adj','days_to_close_spread', 'fee_adjusted_purchase_cost',
-                  'annual_return', 'time'], axis=1, inplace=True)
-    pitches.slope = pitches.slope*24 * 3600 * 1e9 # This must be commented
+                  'annual_return', 'time', 'predict'], axis=1, inplace=True)
+    # pitches.slope = pitches.slope*24 * 3600 * 1e9 # This must be commented
     pitches = calc_returns(pitches)
-    # pitches.to_csv('new_pitches.csv')
     return pitches, all_whisky
 
 

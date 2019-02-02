@@ -44,14 +44,15 @@ def create_pitch(dff):
                  customdata=grp.index, marker=dict(size=17, opacity=0.6, line={'color': 'rgb(255, 255, 255)', 'width': 1}))
         )
 
-    figure = {
-        'layout': dict(title=None, xaxis={'title': 'Number of days to close bid ask spread'},
-                       yaxis={'title': 'Annual % return'}, hovermode='closest', font={'family': 'inherit'},
-                       autosize=True, modebar={'orientation': 'h'}, legend={'orientation': 'v'},
+    figure = {'layout':
+                  dict(title=None,
+                       xaxis={'title': 'Number of days to close bid ask spread', 'rangemode':'nonnegative'},
+                       yaxis={'title': 'Annual % return', 'rangemode':'nonnegative'},
+                       hovermode='closest', font={'family': 'inherit'}, autosize=True,
+                       modebar={'orientation': 'h'}, legend={'orientation': 'v'},
                        hoverlabel=dict(bordercolor='rgba(255, 255, 255, 0)', font={'color': '#ffffff'}),
                        margin={'l': 50, 'b': 50, 'r': 10, 't': 10}),
-        'data': data,
-    }
+              'data': data}
     return figure
 
 def format_markdown(text):
@@ -189,7 +190,7 @@ page_1_layout = html.Div([
                             html.Div([
                                 dcc.Graph(
                                     id='whisky-return-graph',
-                                    hoverData={'points': [{'text': 'auchroisk_2012_Q4_HHR'}]},
+                                    hoverData={'points': [{'text': 'auchroisk_2012_Q4_HHR', 'customdata':1}]},
                                     # style={'width':800},
                                     figure=create_pitch(pitches),
                                 ),
