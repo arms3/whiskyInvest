@@ -41,7 +41,7 @@ def create_pitch(dff):
     for name, grp in dff.groupby('distillery'):
         data.append(
             dict(x=grp.days_to_close_spread, y=grp.annual_return, text=grp.whisky_type, mode='markers', name=name,
-                 marker=dict(size=17, opacity=0.6, line={'color': 'rgb(255, 255, 255)', 'width': 1}))
+                 customdata=grp.index, marker=dict(size=17, opacity=0.6, line={'color': 'rgb(255, 255, 255)', 'width': 1}))
         )
 
     figure = {
@@ -243,7 +243,8 @@ def display_page(pathname):
     [Input('whisky-return-graph', 'hoverData')])
 def update_single_whisky(hoverData):
     whisky_name = hoverData['points'][0]['text']
-    dff = all_whisky[all_whisky['whisky_type'] == whisky_name]
+    pitchId = hoverData['points'][0]['customdata']
+    dff = all_whisky[all_whisky['pitchId'] == pitchId]
     return create_time_series(dff, 'Linear', whisky_name)
 
 
@@ -278,19 +279,24 @@ def update_pitches(distilleries, radio, malt_grain):
 
 def create_time_series(dff, axis_type, title):
     dff = dff.merge(pitches,how='inner',on='pitchId')
-    dff['predict'] = dff.day * dff.slope + dff.intercept
+    print(dff.columns)
+    print(dff.head(2))
 
     return {
-        'data': [go.Scatter(
-            x=dff['dealDate'],
-            y=dff['priceAvg'],
-            mode='lines+markers',
-            name='Average daily price (£)',
-            ),
-            go.Scatter(x=dff['dealDate'],
-            y=dff['predict'],
-            mode='lines',
-            name='Predicted daily price (£)',),
+        'data': [
+            go.Scatter(x=dff['time'],
+                       y=dff['min_sell'],
+                       mode='lines+markers',
+                       name='Bid price (£)',
+                       ),
+            go.Scatter(x=dff['time'],
+                       y=dff['max_buy'],
+                       mode='lines+markers',
+                       name='Ask price (£)', ),
+            go.Scatter(x=dff['time'],
+                       y=dff['predict'],
+                       mode='lines',
+                       name='Model price (£)', ),
         ],
         'layout': dict(title=None, font={'family': 'inherit'}, hovermode='closest', legend={'orientation': 'h'},
                        margin={'l': 80, 'b': 20, 'r': 20, 't': 20},
