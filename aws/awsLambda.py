@@ -75,7 +75,7 @@ def get_hourly():
     # debug local
     # df = dd.read_csv(r'C:\\Users\\sincl\\OneDrive\\Desktop\\days\\2018-12-2*.csv', parse_dates=False)
     unique_time = df.time.unique()
-    fix_time = unique_time.map(lambda x: pd.Timestamp(parser.parse(x, tzinfos=tzinfos), dtype='datetime64[ns]')
+    fix_time = unique_time.map(lambda x: pd.Timestamp(parser.parse(x, tzinfos=tzinfos))
                                .tz_convert('UTC'), meta=pd.Series([], dtype='datetime64[ns, UTC]', name='fix_time'))
 
     # Regroup to hourly
