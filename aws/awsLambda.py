@@ -75,7 +75,7 @@ def get_hourly():
     # debug local
     # df = dd.read_csv(r'C:\\Users\\sincl\\OneDrive\\Desktop\\days\\2018-12-2*.csv', parse_dates=False)
     unique_time = df.time.unique()
-    fix_time = unique_time.map(lambda x: pd.Timestamp(parser.parse(x, tzinfos=tzinfos)) \
+    fix_time = unique_time.map(lambda x: pd.Timestamp(parser.parse(x, tzinfos=tzinfos), dtype='datetime64[ns]')
                                .tz_convert('UTC'), meta=pd.Series([], dtype='datetime64[ns, UTC]', name='fix_time'))
 
     # Regroup to hourly
@@ -87,6 +87,7 @@ def get_hourly():
     df = df.compute()
     df.drop('time', axis=1, inplace=True)
     df.rename({'fixed_time': 'time'}, axis=1, inplace=True)
+    print(df.head(3), df.columns)
 
     # Calculate spreads
     max_buy = df[df['buy'] == 1].groupby(['pitchId', 'time'])[['limit']].max()
@@ -167,6 +168,7 @@ if __name__ == '__main__':
     bucket = s3.Bucket('whisky-pricing')
     print('Loading hourly data...')
     df = get_hourly()
+    print(df.head())
     print('Running regression...')
     pitches = run_regression(df)
     print(pitches.head(3))
