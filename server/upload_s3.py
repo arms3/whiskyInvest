@@ -11,9 +11,9 @@ def main():
     s3 = boto3.resource('s3')
     bucket = s3.Bucket('whisky-pricing')
     td, yd = get_utc_days()
-    fname = yd +'.csv'
+    fname = yd + '.csv'
     print(datetime.datetime.utcnow(), '>>> uploading file: ', fname)
-    bucket.upload_file(fname, fname)
+    bucket.upload_file('days/'+fname, fname)
 
 if __name__ == '__main__':
     main()
