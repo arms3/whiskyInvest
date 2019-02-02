@@ -3,6 +3,7 @@ requests
 flask
 pandas
 numpy
+s3fs
 dash
 dash_core_components
 dash_html_components

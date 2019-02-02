@@ -10,12 +10,13 @@ import plotly.graph_objs as go
 import re
 
 # Load up and analyse data
-from fetch import load_all_data
+# from fetch import load_all_data
+from fetch import get_from_s3
 
 # TODO: use flask-cache to save calls to whisky site
 # https://pythonhosted.org/Flask-Cache/
-pitches, all_whisky = load_all_data()
-pitches['annual_price_increase'] = pitches.slope * 365.25
+# pitches, all_whisky = load_all_data()
+pitches, all_whisky = get_from_s3()
 
 server = flask.Flask(__name__)
 external_stylesheets = [

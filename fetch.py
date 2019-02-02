@@ -6,9 +6,12 @@ import re
 import ast
 import os
 from scipy import stats
+from s3fs import S3FileSystem
+# from flask.ext.cache import Cache
 
-# Setup requests cache to expire after 12 hours
-# requests_cache.install_cache(expire_after=12*60*60)
+
+# Setup flask cache
+# cache = Cache(config={'CACHE_TYPE': 'simple'})
 
 # Fees
 market_fee = 1.75/100.0 # % per transaction, rounded to nearest pence
@@ -148,15 +151,39 @@ def analyse_prices(pitches, df):
     # Calculate returns
     pitches.set_index('pitchId', inplace=True)
     pitches = pitches.join(linreg)
+    pitches = calc_returns(pitches)
+
+    # Clean up and return
+    pitches.reset_index(inplace=True)
+    return pitches
+
+
+def calc_returns(pitches):
     pitches['adjusted_slope'] = pitches.slope - storage_fee / 365.25
     pitches['spread_fee_adj'] = np.round(pitches.best_sell * (1 + market_fee), 2) - pitches.best_buy
     pitches['days_to_close_spread'] = pitches.spread_fee_adj / pitches.adjusted_slope
     pitches['fee_adjusted_purchase_cost'] = np.round(pitches.best_sell * (1 + market_fee), 2)
     pitches['annual_return'] = 100 * 365.25 * pitches.adjusted_slope / pitches.fee_adjusted_purchase_cost
-
-    # Clean up and return
-    pitches.reset_index(inplace=True)
     return pitches
+
+
+def get_from_s3():
+    # Uses default config from environment variables
+    s3 = S3FileSystem(anon=False)
+    all_whisky = pd.read_csv(s3.open('whisky-pricing/mean_daily_spread.csv', mode='rb'))
+    analysed_pitches = pd.read_csv(s3.open('whisky-pricing/pitch_models.csv', mode='rb'))
+    pitches = get_pitches()
+
+    pitches = pitches.set_index('pitchId')
+    analysed_pitches = analysed_pitches.set_index('pitchId')
+    pitches = pitches.join(analysed_pitches, how='inner') # Ignores missing pitches as get_pitches filters out GBP
+    # Clear old returns calculations and recalculate
+    pitches.drop(['max_buy', 'min_sell', 'spread_fee_adj','days_to_close_spread', 'fee_adjusted_purchase_cost',
+                  'annual_return'], axis=1, inplace=True)
+    pitches.slope = pitches.slope*24 * 3600 * 1e9 # This must be commented
+    pitches = calc_returns(pitches)
+    # pitches.to_csv('new_pitches.csv')
+    return pitches, all_whisky
 
 
 def load_all_data():
@@ -168,7 +195,8 @@ def load_all_data():
 
 
 if __name__ == '__main__':
-    ptch = get_pitches()
-    df = scrape_all_charts(ptch)
-    ptch2 = analyse_prices(ptch, df)
-    print(ptch2.head())
+    # ptch = get_pitches()
+    # df = scrape_all_charts(ptch)
+    # ptch2 = analyse_prices(ptch, df)
+    # print(ptch2.head())
+    get_from_s3()
