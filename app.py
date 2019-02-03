@@ -10,13 +10,11 @@ import plotly.graph_objs as go
 import re
 
 # Load up and analyse data
-# from fetch import load_all_data
 from fetch import get_from_s3
+pitches, all_whisky = get_from_s3()
 
 # TODO: use flask-cache to save calls to whisky site
 # https://pythonhosted.org/Flask-Cache/
-# pitches, all_whisky = load_all_data()
-pitches, all_whisky = get_from_s3()
 
 server = flask.Flask(__name__)
 external_stylesheets = [
@@ -28,11 +26,6 @@ external_stylesheets = [
 server.secret_key = os.environ.get('secret_key', str(randint(0, 1000000)))
 app = dash.Dash(__name__, server=server,
                 external_stylesheets=external_stylesheets)
-# Since we're adding callbacks to elements that don't exist in the app.layout,
-# Dash will raise an exception to warn us that we might be
-# doing something wrong.
-# In this case, we're adding the elements through a callback, so we can ignore
-# the exception.
 app.config.suppress_callback_exceptions = True
 
 def create_pitch(dff):
@@ -92,7 +85,8 @@ def Nav():
             html.Div([
                 html.Ul([
                     html.Li([html.A('About', className='nav-link', href='/about')], className='nav-item'),
-                    html.Li([html.A('Github', className='nav-link', href='https://github.com/arms3')], className='nav-item')
+                    # html.Li([html.A('Github', className='nav-link', href='/')], className='nav-item'),
+                    html.Li([html.A('Github', className='nav-link', href='https://github.com/arms3')], className='nav-item'),
                 ], className='navbar-nav'),
                 html.Ul([],className='nav navbar-nav ml-auto'),
             ], id='navbarResponsive',className='collapse navbar-collapse'),
@@ -147,7 +141,7 @@ page_1_layout = html.Div([
             html.Div([
                 html.Div([
                     # Left chart
-                    html.H3('Whisky Predicted Returns', className='card-header'), #className='card-header'
+                    html.Div([html.H3('Predicted Returns', style={'display':'inline-block','margin-bottom':'0px'})], className='card-header'), #className='card-header'
                     html.Div([
                         # Distillery picker
                         html.Div([
@@ -195,7 +189,9 @@ page_1_layout = html.Div([
             # Right Side
             html.Div([
                 html.Div([
-                    html.H3('Whisky Daily Price History', className='card-header'), #className='card-header'
+                    html.Div([html.H3('Price History',style={'display':'inline-block','margin-bottom':'0px'}),
+                              html.P('Filler', id='single-whisky-title', className='float-right', style={'margin-bottom': '0px'})],
+                             className='card-header'), #className='card-header'
                     # html.Div([html.P('Hello',className='lead')], className='row', style={'margin':'5px'}),
                     dcc.Graph(id='single-whisky-chart',
                               # style={'width': 850,'height':550},
@@ -243,6 +239,16 @@ def update_single_whisky(hoverData):
     dff = all_whisky[all_whisky['pitchId'] == pitchId]
     return create_time_series(dff, 'Linear', whisky_name)
 
+@app.callback(
+    Output('single-whisky-title', 'children'),[Input('whisky-return-graph', 'hoverData')])
+def update_title(hoverData):
+    m = {'BBF':'First fill bourbon', 'BBR': 'Refill bourbon', 'HHR': 'Refill hogshead', 'SBR': 'Refill sherry butt'}
+    raw = hoverData['points'][0]['text']
+    processed = raw.split('_')
+    processed[0] = ' '.join([x[0].upper()+x[1:] for x in processed[0].split('-')])
+    processed[-1] = m[processed[-1]]
+    processed = ' '.join(processed)
+    return processed
 
 @app.callback(
     Output('whisky-return-graph', 'figure'),
