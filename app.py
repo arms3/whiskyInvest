@@ -280,30 +280,36 @@ def update_pitches(distilleries, radio, malt_grain):
 
 def create_time_series(dff, axis_type, title):
     dff = dff.merge(pitches,how='inner',on='pitchId')
-    print(dff.columns)
-    print(dff.head(2))
-
-    return {
-        'data': [
-            go.Scatter(x=dff['time'],
-                       y=dff['min_sell'],
-                       mode='lines+markers',
-                       name='Bid price (£)',
-                       ),
-            go.Scatter(x=dff['time'],
-                       y=dff['max_buy'],
-                       mode='lines+markers',
-                       name='Ask price (£)', ),
-            go.Scatter(x=dff['time'],
-                       y=dff['predict'],
-                       mode='lines',
-                       name='Model price (£)', ),
-        ],
-        'layout': dict(title=None, font={'family': 'inherit'}, hovermode='closest', legend={'orientation': 'h'},
-                       margin={'l': 80, 'b': 20, 'r': 20, 't': 20},
-                       yaxis={'type': 'linear' if axis_type == 'Linear' else 'log', 'title': 'Price, £'},
-                       xaxis={'showgrid': False})
-    }
+    best_sell = dff.best_sell.values[0]
+    best_buy = dff.best_buy.values[0]
+    min_time = min(dff.time)
+    max_time = max(dff.time)
+    return dict(data=[
+        go.Scatter(x=dff['time'],
+                   y=dff['min_sell'],
+                   mode='lines+markers',
+                   name='Bid price (£)', ),
+        go.Scatter(x=dff['time'],
+                   y=dff['max_buy'],
+                   mode='lines+markers',
+                   name='Ask price (£)', ),
+        go.Scatter(x=dff['time'],
+                   y=dff['predict'],
+                   mode='lines',
+                   name='Model price (£)', ),
+    ], layout=dict(title=None, font={'family': 'inherit'}, hovermode='closest', legend={'orientation': 'h'},
+                   margin={'l': 80, 'b': 20, 'r': 20, 't': 20},
+                   yaxis={'type': 'linear' if axis_type == 'Linear' else 'log', 'title': 'Price, £'},
+                   xaxis={'showgrid': False},
+                   annotations=[dict(showarrow=False, opacity=0.5, xanchor='left', yanchor='bottom', x=min_time,
+                                     y=best_sell, text='Current best ask £{:.2f}'.format(best_sell)),
+                                dict(showarrow=False, opacity=0.5, xanchor='left', yanchor='bottom', x=min_time,
+                                     y=best_buy, text='Current best bid £{:.2f}'.format(best_buy)), ],
+                   shapes=[dict(type='line', line={'dash':'dot'}, opacity=0.3, x0=min_time, x1=max_time, y0=best_sell,
+                                y1=best_sell),
+                           dict(type='line', line={'dash':'dot'}, opacity=0.3, x0=min_time, x1=max_time, y0=best_buy,
+                                y1=best_buy), ],
+                   ))
 
 
 if __name__ == '__main__':
