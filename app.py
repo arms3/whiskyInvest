@@ -28,13 +28,27 @@ app = dash.Dash(__name__, server=server,
                 external_stylesheets=external_stylesheets)
 app.config.suppress_callback_exceptions = True
 
+
+def format_whisky_type(whisky_type):
+    m = {'BBF': 'First fill bourbon', 'BBR': 'Refill bourbon', 'HHR': 'Refill hogshead', 'SBR': 'Refill sherry butt'}
+    processed  = whisky_type.split('_')
+    processed[0] = ' '.join([x[0].upper() + x[1:] for x in processed[0].split('-')])
+    processed[-1] = m[processed[-1]]
+    return ' '.join(processed)
+
+def format_distill(distill):
+    return ' '.join([x[0].upper() + x[1:] for x in distill.split('-')])
+
+pitches.formattedDistillery = pitches.formattedDistillery.map(format_distill)
+
 def create_pitch(dff):
     """Creates the whisky returns by pitch chart"""
     data = []
     for name, grp in dff.groupby('distillery'):
         data.append(
-            dict(x=grp.days_to_close_spread, y=grp.annual_return, text=grp.whisky_type, mode='markers', name=name,
-                 customdata=grp.index, marker=dict(size=17, opacity=0.6, line={'color': 'rgb(255, 255, 255)', 'width': 1}))
+            dict(x=grp.days_to_close_spread, y=grp.annual_return, text=grp.whisky_type.map(format_whisky_type),
+                 mode='markers', name=grp.formattedDistillery.iloc[0], customdata=grp.index,
+                 marker=dict(size=17, opacity=0.7, line={'color': 'rgb(255, 255, 255)', 'width': 1}))
         )
 
     figure = {'layout':
@@ -178,7 +192,7 @@ page_1_layout = html.Div([
                                     id='whisky-return-graph',
                                     hoverData={'points': [{'text': 'auchroisk_2012_Q4_HHR', 'customdata':1}]},
                                     # style={'width':800},
-                                    figure=create_pitch(pitches),
+                                    # figure=create_pitch(pitches),
                                     style={'height':'100%'}
                                 ),
                             ],className='container',style={'overflow':'hidden'}),
@@ -239,16 +253,11 @@ def update_single_whisky(hoverData):
     dff = all_whisky[all_whisky['pitchId'] == pitchId]
     return create_time_series(dff, 'Linear', whisky_name)
 
+
 @app.callback(
-    Output('single-whisky-title', 'children'),[Input('whisky-return-graph', 'hoverData')])
+    Output('single-whisky-title', 'children'), [Input('whisky-return-graph', 'hoverData')])
 def update_title(hoverData):
-    m = {'BBF':'First fill bourbon', 'BBR': 'Refill bourbon', 'HHR': 'Refill hogshead', 'SBR': 'Refill sherry butt'}
-    raw = hoverData['points'][0]['text']
-    processed = raw.split('_')
-    processed[0] = ' '.join([x[0].upper()+x[1:] for x in processed[0].split('-')])
-    processed[-1] = m[processed[-1]]
-    processed = ' '.join(processed)
-    return processed
+    return hoverData['points'][0]['text']
 
 @app.callback(
     Output('whisky-return-graph', 'figure'),
@@ -297,13 +306,15 @@ def create_time_series(dff, axis_type, title):
         go.Scatter(x=dff['time'],
                    y=dff['predict'],
                    mode='lines',
-                   name='Model', ),
-    ], layout=dict(title=None, font={'family': 'inherit'}, hovermode='closest',
-                   legend=dict(orientation='h', xanchor='left', x=0.1, y=1.11, yanchor='top'),
+                   name='Model',
+                   line={'width':1}),
+    ], layout=dict(title=None, font={'family': 'inherit'}, hovermode='compare',
+                   legend=dict(orientation='h', xanchor='left', x=0.1, y=1.08, yanchor='top'),
                    margin={'l': 80, 'b': 20, 'r': 20, 't': 20},
                    yaxis={'type': 'linear' if axis_type == 'Linear' else 'log', 'title': 'Price, £'},
                    xaxis={'showgrid': False, 'rangeslider': {'visible':True, 'thickness':0.07},
                           'rangeselector': {'buttons': [{'step': 'month', 'count': 3}, {'step': 'year', 'count': 1}]}},
+                   colorway=['#ff610b', '#053061', '#a3156d'],
                    annotations=[dict(showarrow=True, arrowcolor='rgba(255, 255, 255, 0.01)', ax=15, ay=0, opacity=0.5,
                                      xanchor='left', yanchor='bottom', x=min_time,
                                      y=best_sell, text='Current ask £{:.2f}'.format(best_sell)),
