@@ -10,3 +10,7 @@ input[type="radio"], input[type="checkbox"] {
     padding: 3px;
     margin: 3px;
 }
+
+.navbar{
+    padding: 0.5rem 0.5rem
+}

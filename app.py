@@ -83,22 +83,27 @@ app.layout = html.Div([
     html.Div(id='page-content')
 ])
 
-# TODO: Refactor common parts as single functions
-about_page_layout = html.Div([
-    # Navbar
-    html.Nav(children=[
+
+def Nav():
+    nav = html.Nav(children=[
         html.Div([
-            html.A('Home', className='navbar-brand', href='/'),
+            html.Img(src='/assets/whiskey.svg',height=40),
+            html.A('Whisky Investor', className='navbar-brand', href='/'),
             html.Div([
                 html.Ul([
                     html.Li([html.A('About', className='nav-link', href='/about')], className='nav-item'),
-                    html.Li([html.A('Github', className='nav-link', href='https://github.com/arms3/whiskyInvest')],
-                            className='nav-item')
+                    html.Li([html.A('Github', className='nav-link', href='https://github.com/arms3')], className='nav-item')
                 ], className='navbar-nav'),
                 html.Ul([],className='nav navbar-nav ml-auto'),
             ], id='navbarResponsive',className='collapse navbar-collapse'),
         ], className='container')
-    ], className="navbar navbar-expand-lg navbar-dark bg-dark"),
+    ], className="navbar navbar-expand-lg navbar-dark bg-dark")
+    return nav
+
+
+about_page_layout = html.Div([
+    # Navbar
+    Nav(),
 
     # Main container
     # Header
@@ -119,34 +124,21 @@ about_page_layout = html.Div([
     ], className='container')
 ])
 
+
 # Main chart page
 # TODO: Update this to use dash-bootsrap components
 # https://dash-bootstrap-components.opensource.asidatascience.com/
 page_1_layout = html.Div([
-    # Navbar
-    html.Nav(children=[
-        html.Div([
-            html.Img(src='/assets/whiskey.svg',height=40),
-            html.A('Home', className='navbar-brand', href='/'),
-            html.Div([
-                html.Ul([
-                    html.Li([html.A('About', className='nav-link', href='/about')], className='nav-item'),
-                    html.Li([html.A('Github', className='nav-link', href='https://github.com/arms3')], className='nav-item')
-                ], className='navbar-nav'),
-                html.Ul([],className='nav navbar-nav ml-auto'),
-            ], id='navbarResponsive',className='collapse navbar-collapse'),
-        ], className='container')
-    ], className="navbar navbar-expand-lg navbar-dark bg-dark"),
-
+    Nav(),
     # Main container
     html.Div([
         # Header
         html.Div([
             html.Div([
                 html.Div([
-                    html.H1('Whisky Price Explorer', style={'margin-top':30}),
+                    # html.H1('Whisky Price Explorer', style={'margin-top':30}),
                     html.P(dcc.Markdown('Top performing whiskies from [whiskyinvestdirect.com](https://www.whiskyinvestdirect.com/)')),
-                ], className='col-lg-12')
+                ], className='col-lg-12', style={'margin-top':20})
             ], className='row')
         ], className='page-header'),
         # Row containing charts
@@ -155,7 +147,7 @@ page_1_layout = html.Div([
             html.Div([
                 html.Div([
                     # Left chart
-                    html.Div('Whisky Predicted Returns', className='card-header'),
+                    html.H3('Whisky Predicted Returns', className='card-header'), #className='card-header'
                     html.Div([
                         # Distillery picker
                         html.Div([
@@ -193,30 +185,33 @@ page_1_layout = html.Div([
                                     hoverData={'points': [{'text': 'auchroisk_2012_Q4_HHR', 'customdata':1}]},
                                     # style={'width':800},
                                     figure=create_pitch(pitches),
+                                    style={'height':'100%'}
                                 ),
                             ],className='container',style={'overflow':'hidden'}),
                         ], className='row', style={'margin':'5px'})
                     ],className='section'),
-                ],className='card border-secondary mb-3',style={'height':600}), #col-lg-6
+                ], className='card border-secondary mb-3', style={'height':650}), #col-lg-6 style={'height':600} #className='card border-secondary mb-3'
             ],className='col-lg-6'),
             # Right Side
             html.Div([
                 html.Div([
-                    html.Div('Whisky Daily Price History',className='card-header'),
-                    # Template.from_string('<H1>Hello</H1>'),
+                    html.H3('Whisky Daily Price History', className='card-header'), #className='card-header'
                     # html.Div([html.P('Hello',className='lead')], className='row', style={'margin':'5px'}),
                     dcc.Graph(id='single-whisky-chart',
                               # style={'width': 850,'height':550},
-                              ),
-                ],className='card border-secondary mb-3', style={'height':600}), #'col-lg-6'
+                              style={'height':'100%'}),
+                ],className='card border-secondary mb-3', style={'height':650}), #'col-lg-6' style={'height':600} #className='card border-secondary mb-3',
             ],className='col-lg-6'),
-        ],className='row', style={'display':'flex'}),
+        ],className='row row-eq-height', ), #style={'display':'flex'}
 
         # Footer
-        html.Footer([html.Div([html.Div([html.Ul([
+        html.Footer([html.Div([html.Div([
+            html.Ul([
                     html.Li(html.A('Back to top',href='#top'),className='float-lg-right'),
-                    html.Li(html.A('GitHub',href='https://github.com/arms3')),
-                ],className='list-unstyled'),
+                    # html.Li(html.A('Home',href='/')),
+                    # html.Li(html.A('About',href='/about')),
+                    # html.Li(html.A('GitHub',href='https://github.com/arms3')),
+            ],className='list-unstyled'),
             dcc.Markdown('''Created by [Angus Sinclair](https://github.com/arms3)'''),
             Template.from_string(
                 '''<P>Icons made by <a href="https://www.freepik.com/" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" 			    title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" 			    title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></P>'''),
@@ -287,24 +282,28 @@ def create_time_series(dff, axis_type, title):
     return dict(data=[
         go.Scatter(x=dff['time'],
                    y=dff['min_sell'],
-                   mode='lines+markers',
-                   name='Bid price (£)', ),
+                   mode='lines',
+                   name='Bid £', ),
         go.Scatter(x=dff['time'],
                    y=dff['max_buy'],
-                   mode='lines+markers',
-                   name='Ask price (£)', ),
+                   mode='lines',
+                   name='Ask £', ),
         go.Scatter(x=dff['time'],
                    y=dff['predict'],
                    mode='lines',
-                   name='Model price (£)', ),
-    ], layout=dict(title=None, font={'family': 'inherit'}, hovermode='closest', legend={'orientation': 'h'},
+                   name='Model', ),
+    ], layout=dict(title=None, font={'family': 'inherit'}, hovermode='closest',
+                   legend=dict(orientation='h', xanchor='left', x=0.1, y=1.11, yanchor='top'),
                    margin={'l': 80, 'b': 20, 'r': 20, 't': 20},
                    yaxis={'type': 'linear' if axis_type == 'Linear' else 'log', 'title': 'Price, £'},
-                   xaxis={'showgrid': False},
-                   annotations=[dict(showarrow=False, opacity=0.5, xanchor='left', yanchor='bottom', x=min_time,
-                                     y=best_sell, text='Current best ask £{:.2f}'.format(best_sell)),
-                                dict(showarrow=False, opacity=0.5, xanchor='left', yanchor='bottom', x=min_time,
-                                     y=best_buy, text='Current best bid £{:.2f}'.format(best_buy)), ],
+                   xaxis={'showgrid': False, 'rangeslider': {'visible':True, 'thickness':0.07},
+                          'rangeselector': {'buttons': [{'step': 'month', 'count': 3}, {'step': 'year', 'count': 1}]}},
+                   annotations=[dict(showarrow=True, arrowcolor='rgba(255, 255, 255, 0.01)', ax=15, ay=0, opacity=0.5,
+                                     xanchor='left', yanchor='bottom', x=min_time,
+                                     y=best_sell, text='Current ask £{:.2f}'.format(best_sell)),
+                                dict(showarrow=True, arrowcolor='rgba(255, 255, 255, 0.01)', ax=15, ay=0, opacity=0.5,
+                                     xanchor='left', yanchor='bottom', x=min_time,
+                                     y=best_buy, text='Current bid £{:.2f}'.format(best_buy)), ],
                    shapes=[dict(type='line', line={'dash':'dot'}, opacity=0.3, x0=min_time, x1=max_time, y0=best_sell,
                                 y1=best_sell),
                            dict(type='line', line={'dash':'dot'}, opacity=0.3, x0=min_time, x1=max_time, y0=best_buy,
