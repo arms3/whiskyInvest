@@ -133,6 +133,20 @@ about_page_layout = html.Div([
 ])
 
 
+def RightChart():
+    return html.Div([
+        html.Div([
+            html.Div([html.H3('Price History',style={'display':'inline-block','margin-bottom':'0px'}),
+                      html.P('Filler', id='single-whisky-title', className='float-right', style={'margin-bottom': '0px'})],
+                     className='card-header'), #className='card-header'
+            # html.Div([html.P('Hello',className='lead')], className='row', style={'margin':'5px'}),
+            dcc.Graph(id='single-whisky-chart',
+                      # style={'width': 850,'height':550},
+                      style={'height':'100%'}),
+        ],className='card border-secondary mb-3', style={'height':650}), #'col-lg-6' style={'height':600} #className='card border-secondary mb-3',
+    ],className='col-lg-6'),
+
+
 # Main chart page
 # TODO: Update this to use dash-bootsrap components
 # https://dash-bootstrap-components.opensource.asidatascience.com/
@@ -201,17 +215,7 @@ page_1_layout = html.Div([
                 ], className='card border-secondary mb-3', style={'height':650}), #col-lg-6 style={'height':600} #className='card border-secondary mb-3'
             ],className='col-lg-6'),
             # Right Side
-            html.Div([
-                html.Div([
-                    html.Div([html.H3('Price History',style={'display':'inline-block','margin-bottom':'0px'}),
-                              html.P('Filler', id='single-whisky-title', className='float-right', style={'margin-bottom': '0px'})],
-                             className='card-header'), #className='card-header'
-                    # html.Div([html.P('Hello',className='lead')], className='row', style={'margin':'5px'}),
-                    dcc.Graph(id='single-whisky-chart',
-                              # style={'width': 850,'height':550},
-                              style={'height':'100%'}),
-                ],className='card border-secondary mb-3', style={'height':650}), #'col-lg-6' style={'height':600} #className='card border-secondary mb-3',
-            ],className='col-lg-6'),
+            RightChart(),
         ],className='row row-eq-height', ), #style={'display':'flex'}
 
         # Footer
