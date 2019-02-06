@@ -108,9 +108,11 @@ def index2int(index):
     """Helper function to convert timeindexes to ints"""
     return index.astype(np.int64).values.reshape(-1,1)
 
+
 def int2dt(array):
     """Helper function to convert int64 to timeseries[ns]"""
     return pd.to_datetime(pd.Series(array.squeeze(), name='timestamp'),utc=True)
+
 
 def run_regression(df):
     lr = OutlierLinearRegression(0.5, SplineRegressor(smooth_factor=11, order=1))
@@ -151,12 +153,22 @@ def run_regression(df):
     pitches = df.sort_index(ascending=True).dropna().reset_index().groupby('pitchId').last() # Warning here about converting to naive datetime not sure why
     pitches = pitches.join(linreg)
     pitches = pitches.dropna()
-    pitches.slope = pitches.slope*dayseconds
-    pitches['adjusted_slope'] = pitches.slope - (storage_fee / 365.25)
-    pitches['spread_fee_adj'] = np.round(pitches.min_sell * (1 + market_fee), 2) - pitches.max_buy
+
+    # pitches.slope = pitches.slope*dayseconds
+    # pitches['adjusted_slope'] = pitches.slope - (storage_fee / 365.25)
+    # pitches['spread_fee_adj'] = np.round(pitches.min_sell * (1 + market_fee), 2) - pitches.max_buy
+    # pitches['days_to_close_spread'] = pitches.spread_fee_adj / pitches.adjusted_slope
+    # pitches['fee_adjusted_purchase_cost'] = np.round(pitches.min_sell * (1 + market_fee), 2)
+    # pitches['annual_return'] = 100 * 365.25 * pitches.adjusted_slope / pitches.fee_adjusted_purchase_cost
+
+    pitches['adjusted_slope'] = (dayseconds * pitches.slope) - (storage_fee / 365.25)
+    pitches['spread_fee_adj'] = pitches.min_sell * (1 + market_fee) - pitches.max_buy
     pitches['days_to_close_spread'] = pitches.spread_fee_adj / pitches.adjusted_slope
-    pitches['fee_adjusted_purchase_cost'] = np.round(pitches.min_sell * (1 + market_fee), 2)
-    pitches['annual_return'] = 100 * 365.25 * pitches.adjusted_slope / pitches.fee_adjusted_purchase_cost
+    pitches['fee_adjusted_purchase_cost'] = pitches.min_sell * (1 + market_fee)
+    pitches['predicted1y'] = pitches.intercept + (pitches.time.astype(np.int64) * pitches.slope) \
+                             + (pitches.adjusted_slope * 365.25)  # Use model price here
+    pitches['fee_adjusted_sell_cost'] = pitches.predicted1y * (1 - market_fee)
+    pitches['annual_return'] = -100 + 100 * pitches.fee_adjusted_sell_cost / pitches.fee_adjusted_purchase_cost
 
     # Save csv
     print('Uploading model...')
