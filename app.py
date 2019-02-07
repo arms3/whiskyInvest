@@ -53,8 +53,8 @@ def create_pitch(dff):
 
     figure = {'layout':
                   dict(title=None,
-                       xaxis={'title': 'Number of days to close bid ask spread', 'rangemode':'nonnegative', 'showline': False, 'zeroline': False, },
-                       yaxis={'title': 'Annual % return', 'rangemode': 'nonnegative', 'showline': False, 'zeroline': False, },
+                       xaxis={'title': 'Number of days to close bid ask spread',  'showline': False, 'zeroline': False, }, #'rangemode':'nonnegative',
+                       yaxis={'title': 'Annual % return', 'showline': False, 'zeroline': False, }, #'rangemode': 'nonnegative',
                        hovermode='closest', font={'family': 'inherit'}, autosize=True,
                        modebar={'orientation': 'h'}, legend={'orientation': 'v'},
                        hoverlabel=dict(bordercolor='rgba(255, 255, 255, 0)', font={'color': '#ffffff'}),
@@ -134,7 +134,7 @@ about_page_layout = html.Div([
 
 
 def RightChart():
-    return html.Div([
+    layout = html.Div([
         html.Div([
             html.Div([html.H3('Price History',style={'display':'inline-block','margin-bottom':'0px'}),
                       html.P('Filler', id='single-whisky-title', className='float-right', style={'margin-bottom': '0px'})],
@@ -145,6 +145,7 @@ def RightChart():
                       style={'height':'100%'}),
         ],className='card border-secondary mb-3', style={'height':650}), #'col-lg-6' style={'height':600} #className='card border-secondary mb-3',
     ],className='col-lg-6'),
+    return layout
 
 
 # Main chart page
@@ -215,7 +216,17 @@ page_1_layout = html.Div([
                 ], className='card border-secondary mb-3', style={'height':650}), #col-lg-6 style={'height':600} #className='card border-secondary mb-3'
             ],className='col-lg-6'),
             # Right Side
-            RightChart(),
+            html.Div([
+                html.Div([
+                    html.Div([html.H3('Price History',style={'display':'inline-block','margin-bottom':'0px'}),
+                              html.P('Filler', id='single-whisky-title', className='float-right', style={'margin-bottom': '0px'})],
+                             className='card-header'), #className='card-header'
+                    # html.Div([html.P('Hello',className='lead')], className='row', style={'margin':'5px'}),
+                    dcc.Graph(id='single-whisky-chart',
+                              # style={'width': 850,'height':550},
+                              style={'height':'100%'}),
+                ],className='card border-secondary mb-3', style={'height':650}), #'col-lg-6' style={'height':600} #className='card border-secondary mb-3',
+            ],className='col-lg-6'),
         ],className='row row-eq-height', ), #style={'display':'flex'}
 
         # Footer
@@ -333,4 +344,4 @@ def create_time_series(dff, axis_type, title):
 
 
 if __name__ == '__main__':
-    app.server.run(debug=False, threaded=True)
+    app.server.run(debug=True, threaded=True)
