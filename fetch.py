@@ -14,8 +14,9 @@ from s3fs import S3FileSystem
 # cache = Cache(config={'CACHE_TYPE': 'simple'})
 
 # Fees
-market_fee = 1.75/100.0 # % per transaction, rounded to nearest pence
-storage_fee = 0.15 # pence per annum (charged monthly)
+market_fee = 1.75 / 100.0  # % per transaction, rounded to nearest pence
+storage_fee = 0.15  # pence per annum (charged monthly)
+dayseconds = 24 * 3600 * 1e9  # nanoseconds in a day
 
 def checkpoint(fname, df_read_args={}):
     """Function decorator to checkpoint functions that return dataframes."""
@@ -159,11 +160,21 @@ def analyse_prices(pitches, df):
 
 
 def calc_returns(pitches):
-    pitches['adjusted_slope'] = pitches.slope - storage_fee / 365.25
-    pitches['spread_fee_adj'] = np.round(pitches.best_sell * (1 + market_fee), 2) - pitches.best_buy
+    # pitches['adjusted_slope'] = pitches.slope - storage_fee / 365.25
+    # pitches['spread_fee_adj'] = np.round(pitches.best_sell * (1 + market_fee), 2) - pitches.best_buy
+    # pitches['days_to_close_spread'] = pitches.spread_fee_adj / pitches.adjusted_slope
+    # pitches['fee_adjusted_purchase_cost'] = np.round(pitches.best_sell * (1 + market_fee), 2)
+    # pitches['annual_return'] = 100 * 365.25 * pitches.adjusted_slope / pitches.fee_adjusted_purchase_cost
+
+    pitches['adjusted_slope'] = (dayseconds * pitches.slope) - (storage_fee / 365.25)
+    pitches['spread_fee_adj'] = pitches.best_sell * (1 + market_fee) - pitches.best_buy
     pitches['days_to_close_spread'] = pitches.spread_fee_adj / pitches.adjusted_slope
-    pitches['fee_adjusted_purchase_cost'] = np.round(pitches.best_sell * (1 + market_fee), 2)
-    pitches['annual_return'] = 100 * 365.25 * pitches.adjusted_slope / pitches.fee_adjusted_purchase_cost
+    pitches['fee_adjusted_purchase_cost'] = pitches.best_sell * (1 + market_fee)
+    pitches['predicted1y'] = pitches.intercept + (pd.Timestamp.now('UTC').value * pitches.slope) \
+                             + (pitches.adjusted_slope * 365.25)  # Use model price here
+    pitches['fee_adjusted_sell_cost'] = pitches.predicted1y * (1 - market_fee)
+    pitches['annual_return'] = -100 + 100 * pitches.fee_adjusted_sell_cost / pitches.fee_adjusted_purchase_cost
+
     return pitches
 
 @checkpoint('mean_daily_spread.csv')
