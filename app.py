@@ -37,17 +37,30 @@ def format_whisky_type(whisky_type):
     processed[-1] = m[processed[-1]]
     return ' '.join(processed)
 
+
 def format_distill(distill):
     return ' '.join([x[0].upper() + x[1:] for x in distill.split('-')])
 
 pitches.formattedDistillery = pitches.formattedDistillery.map(format_distill)
 
-def create_pitch(dff):
+
+def create_pitch(dff, strategy=None):
     """Creates the whisky returns by pitch chart"""
     data = []
+    if strategy == 2:
+        xcol = 'annual_return'
+        xtitle = 'Annual % return'
+        ycol = 'APR_5%'
+        ytitle = 'Compound Annual Return, %'
+    else:
+        xcol = 'days_to_close_spread'
+        xtitle = 'Number of days to close bid ask spread'
+        ycol = 'annual_return'
+        ytitle = 'Annual Return, %'
+
     for name, grp in dff.groupby('distillery'):
         data.append(
-            dict(x=grp.days_to_close_spread, y=grp.annual_return, text=grp.whisky_type.map(format_whisky_type),
+            dict(x=grp[xcol], y=grp[ycol], text=grp.whisky_type.map(format_whisky_type),
                  mode='markers', name=grp.formattedDistillery.iloc[0], customdata=grp.index,
                  marker=dict(size=17, opacity=0.7, line={'color': 'rgb(255, 255, 255)', 'width': 1}))
         )
@@ -55,8 +68,8 @@ def create_pitch(dff):
     figure = {'layout':
                   dict(title=None,
                        autosize=True,
-                       xaxis={'title': 'Number of days to close bid ask spread',  'showline': False, 'zeroline': False, }, #'rangemode':'nonnegative',
-                       yaxis={'title': 'Annual % return', 'showline': False, 'zeroline': False, }, #'rangemode': 'nonnegative',
+                       xaxis={'title': xtitle,  'showline': False, 'zeroline': False, }, #'rangemode':'nonnegative',
+                       yaxis={'title': ytitle, 'showline': False, 'zeroline': False, }, #'rangemode': 'nonnegative',
                        hovermode='closest', font={'family': 'inherit'},
                        modebar={'orientation': 'h'}, legend={'orientation': 'v'},
                        hoverlabel=dict(bordercolor='rgba(255, 255, 255, 0)', font={'color': '#ffffff'}),
@@ -133,22 +146,6 @@ about_page_layout = html.Div([
         ], className='page-header'),
     ], className='container')
 ])
-
-
-def RightChart():
-    layout = html.Div([
-        html.Div([
-            html.Div([html.H3('Price History',style={'display':'inline-block','margin-bottom':'0px'}),
-                      html.P('Filler', id='single-whisky-title', className='float-right', style={'margin-bottom': '0px'})],
-                     className='card-header'), #className='card-header'
-            # html.Div([html.P('Hello',className='lead')], className='row', style={'margin':'5px'}),
-            dcc.Graph(id='single-whisky-chart',
-                      # style={'width': 850,'height':550},
-                      # style={'height':'100%'}
-            ),
-        ],className='card border-secondary mb-3', style={'height':650}), #'col-lg-6' style={'height':600} #className='card border-secondary mb-3',
-    ],className='col-lg-6'),
-    return layout
 
 
 # Main chart page
@@ -281,7 +278,7 @@ def show_hide_charts(n):
 
 @app.callback(Output('show-hide-button','style'),
               [Input('show-hide-button','n_clicks')])
-def show_hide_charts(n):
+def show_hide_button(n):
     if not n:
         # Button has never been clicked
         return {}
@@ -289,7 +286,7 @@ def show_hide_charts(n):
 
 @app.callback(Output('intro-text','style'),
               [Input('show-hide-button','n_clicks')])
-def show_hide_charts(n):
+def show_hide_intro(n):
     if not n:
         # Button has never been clicked
         return {}
@@ -325,10 +322,10 @@ def update_title(hoverData):
 
 @app.callback(
     Output('whisky-return-graph', 'figure'),
-    [Input('distillery-dropdown', 'value'), Input('radio-high-correlation','value'),
-     Input('grain-malt-chooser', 'values'),]
+    [Input('distillery-dropdown', 'value'), Input('radio-high-correlation', 'value'),
+     Input('grain-malt-chooser', 'values'), Input('radio-strategy', 'value')]
 )
-def update_pitches(distilleries, radio, malt_grain):
+def update_pitches(distilleries, radio, malt_grain, strategy):
     # Check we have some distilleries selected otherwise show all
     if distilleries == None:
         dff = pitches
@@ -349,7 +346,10 @@ def update_pitches(distilleries, radio, malt_grain):
         malt_grain = [malt_grain_format[x] for x in malt_grain]
         dff = dff[dff.categoryName.isin(malt_grain)]
 
-    return create_pitch(dff)
+    if strategy == 2:
+        return create_pitch(dff, 2)
+    else:
+        return create_pitch(dff, 1)
 
 
 def create_time_series(dff, axis_type, title):
