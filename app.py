@@ -2,6 +2,7 @@ import flask
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 from dash_html_template import Template
 import os
@@ -10,7 +11,7 @@ import plotly.graph_objs as go
 import re
 
 # Load up and analyse data
-from fetch import get_from_s3
+from fetch import get_from_s3, calc_returns
 pitches, all_whisky = get_from_s3()
 
 # TODO: use flask-cache to save calls to whisky site
@@ -53,9 +54,10 @@ def create_pitch(dff):
 
     figure = {'layout':
                   dict(title=None,
+                       autosize=True,
                        xaxis={'title': 'Number of days to close bid ask spread',  'showline': False, 'zeroline': False, }, #'rangemode':'nonnegative',
                        yaxis={'title': 'Annual % return', 'showline': False, 'zeroline': False, }, #'rangemode': 'nonnegative',
-                       hovermode='closest', font={'family': 'inherit'}, autosize=True,
+                       hovermode='closest', font={'family': 'inherit'},
                        modebar={'orientation': 'h'}, legend={'orientation': 'v'},
                        hoverlabel=dict(bordercolor='rgba(255, 255, 255, 0)', font={'color': '#ffffff'}),
                        margin={'l': 50, 'b': 50, 'r': 10, 't': 10}),
@@ -142,7 +144,8 @@ def RightChart():
             # html.Div([html.P('Hello',className='lead')], className='row', style={'margin':'5px'}),
             dcc.Graph(id='single-whisky-chart',
                       # style={'width': 850,'height':550},
-                      style={'height':'100%'}),
+                      # style={'height':'100%'}
+            ),
         ],className='card border-secondary mb-3', style={'height':650}), #'col-lg-6' style={'height':600} #className='card border-secondary mb-3',
     ],className='col-lg-6'),
     return layout
@@ -160,12 +163,34 @@ page_1_layout = html.Div([
             html.Div([
                 html.Div([
                     # html.H1('Whisky Price Explorer', style={'margin-top':30}),
-                    html.P(dcc.Markdown('Top performing whiskies from [whiskyinvestdirect.com](https://www.whiskyinvestdirect.com/)')),
+                    dbc.Jumbotron([
+                        html.H2('Choose Your Investment Strategy'),
+                        html.P(dcc.Markdown('This website helps you to pick the top performing whiskies on [whiskyinvestdirect.com](https://www.whiskyinvestdirect.com/).'),),
+                        html.Hr(className="my-2"),
+                        html.P("The performance of your investments depends on the strategy you use to buy and sell "
+                                "whiskies. Choose option 1 if you prefer to buy and hold onto them for a few years."
+                                "Choose option 2 if you are looking for the best return but are willing to buy and"
+                               "sell at the optimum point."),
+                        html.P(dbc.Button("Show me the whiskies", color="primary"), className="btn-sm", id="show-hide-button"),
+                    ], id='intro-text'),
+
+                    # html.Button(id='show-hide-button', n_clicks=0, children='Show'),
+                    html.P(dbc.Row([
+                        dbc.RadioItems(
+                                    id='radio-strategy',
+                                    options=[{'label':'Option 1: I want to see whiskies for a buy and hold strategy','value':1},
+                                             {'label':'Option 2: I\'m looking for a higher rate of return','value':2}],
+                                    value=1,
+                                    labelStyle={'padding-left':'25px'},
+                                    style={'padding-right':'50px'}
+                        ),
+                        # dbc.Button("Show", color="primary", className="btn-sm", id='show-hide-button',),
+                    ])),
                 ], className='col-lg-12', style={'margin-top':20})
             ], className='row')
         ], className='page-header'),
         # Row containing charts
-        html.Div([
+        dbc.Fade([
             # Left Side
             html.Div([
                 html.Div([
@@ -202,16 +227,16 @@ page_1_layout = html.Div([
                         ], className='row', style={'margin':'5px'}),
                         # Chart row
                         html.Div([
-                            html.Div([
-                                dcc.Graph(
-                                    id='whisky-return-graph',
-                                    hoverData={'points': [{'text': 'auchroisk_2012_Q4_HHR', 'customdata':1}]},
-                                    # style={'width':800},
-                                    # figure=create_pitch(pitches),
-                                    style={'height':'100%'}
-                                ),
-                            ],className='container',style={'overflow':'hidden'}),
-                        ], className='row', style={'margin':'5px'})
+                            # html.Div([
+                            dcc.Graph(
+                                id='whisky-return-graph',
+                                hoverData={'points': [{'text': 'auchroisk_2012_Q4_HHR', 'customdata':1}]},
+                                # style={'width':800},
+                                # figure=create_pitch(pitches),
+                                style={'height':'100%', 'width':'100%'}
+                            ),
+                            # ],className='container',style={'height':'100%'}), #style={'overflow':'hidden'}
+                        ], className='row', style={'margin':'5px','height':450})
                     ],className='section'),
                 ], className='card border-secondary mb-3', style={'height':650}), #col-lg-6 style={'height':600} #className='card border-secondary mb-3'
             ],className='col-lg-6'),
@@ -227,7 +252,7 @@ page_1_layout = html.Div([
                               style={'height':'100%'}),
                 ],className='card border-secondary mb-3', style={'height':650}), #'col-lg-6' style={'height':600} #className='card border-secondary mb-3',
             ],className='col-lg-6'),
-        ],className='row row-eq-height', ), #style={'display':'flex'}
+        ],className='row row-eq-height', id="chart-content", appear=False, is_in=False), #style={'display':'flex'} style={'visibility': 'hidden'}
 
         # Footer
         html.Footer([html.Div([html.Div([
@@ -245,6 +270,30 @@ page_1_layout = html.Div([
     ], className="container"),
 ])
 
+
+@app.callback(Output('chart-content','is_in'),
+              [Input('show-hide-button','n_clicks')])
+def show_hide_charts(n):
+    if not n:
+        # Button has never been clicked
+        return False
+    return True
+
+@app.callback(Output('show-hide-button','style'),
+              [Input('show-hide-button','n_clicks')])
+def show_hide_charts(n):
+    if not n:
+        # Button has never been clicked
+        return {}
+    return {'display': 'none'}
+
+@app.callback(Output('intro-text','style'),
+              [Input('show-hide-button','n_clicks')])
+def show_hide_charts(n):
+    if not n:
+        # Button has never been clicked
+        return {}
+    return {'display': 'none'}
 
 # Update the index
 @app.callback(Output('page-content', 'children'),
@@ -324,6 +373,7 @@ def create_time_series(dff, axis_type, title):
                    name='Model',
                    line={'width':1}),
     ], layout=dict(title=None, font={'family': 'inherit'}, hovermode='compare',
+                   autosize=True,
                    legend=dict(orientation='h', xanchor='left', x=0.1, y=1.08, yanchor='top'),
                    margin={'l': 80, 'b': 20, 'r': 20, 't': 20},
                    yaxis={'type': 'linear' if axis_type == 'Linear' else 'log', 'title': 'Price, £'},
