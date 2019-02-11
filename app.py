@@ -3,6 +3,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
+from dash_table import DataTable
 from dash.dependencies import Input, Output
 from dash_html_template import Template
 import os
@@ -69,7 +70,7 @@ def create_pitch(dff, strategy=None):
                   dict(title=None,
                        autosize=True,
                        xaxis={'title': xtitle,  'showline': False, 'zeroline': False, }, #'rangemode':'nonnegative',
-                       yaxis={'title': ytitle, 'showline': False, 'zeroline': False, }, #'rangemode': 'nonnegative',
+                       yaxis={'title': ytitle, 'showline': False, 'zeroline': True, }, #'rangemode': 'nonnegative',
                        hovermode='closest', font={'family': 'inherit'},
                        modebar={'orientation': 'h'}, legend={'orientation': 'v'},
                        hoverlabel=dict(bordercolor='rgba(255, 255, 255, 0)', font={'color': '#ffffff'}),
@@ -106,6 +107,10 @@ app.layout = html.Div([
 ])
 
 
+def best_returns_bar():
+    data = pitches.query('(r_value > 0.99)').sort_values('return', ascending=False)[:20].reset_index()
+
+
 def Nav():
     nav = html.Nav(children=[
         html.Div([
@@ -114,7 +119,7 @@ def Nav():
             html.Div([
                 html.Ul([
                     html.Li([html.A('About', className='nav-link', href='/about')], className='nav-item'),
-                    # html.Li([html.A('Github', className='nav-link', href='/')], className='nav-item'),
+                    html.Li([html.A('Summary', className='nav-link', href='/summary')], className='nav-item'),
                     html.Li([html.A('Github', className='nav-link', href='https://github.com/arms3')], className='nav-item'),
                 ], className='navbar-nav'),
                 html.Ul([],className='nav navbar-nav ml-auto'),
@@ -145,6 +150,32 @@ about_page_layout = html.Div([
             ], className='row')
         ], className='page-header'),
     ], className='container')
+])
+
+
+summary_table_layout = html.Div([
+    Nav(),
+    dbc.Container(
+        [
+            dbc.Row([
+                dbc.Col([
+                    html.H2("Top performing whiskies"),
+                    html.P('List of top performing whiskies based on a 1 year buy and hold strategy. Including market fees and holding fees.'),
+                    dbc.Table.from_dataframe(pitches[['whisky_type','days_to_close_spread','annual_return','r_value']]\
+                                             .query('r_value > 0.98').sort_values('annual_return',ascending=False)[:10],
+                                             dark=False, responsive='md', hover=True, float_format='.2f')
+                ]),
+                dbc.Col([
+                    html.H2("Stuff here"),
+                    dbc.Row([
+
+                    ]),
+                    dbc.Row([
+
+                    ]),
+                ])
+            ],),
+        ],  className="mt-4",)
 ])
 
 
@@ -300,6 +331,8 @@ def display_page(pathname):
         return page_1_layout
     elif pathname == '/about':
         return about_page_layout
+    elif pathname == '/summary':
+        return summary_table_layout
     else:
         return page_1_layout
     # You could also return a 404 "URL not found" page here
