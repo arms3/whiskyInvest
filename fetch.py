@@ -169,14 +169,13 @@ def calc_returns(pitches):
     pitches['fee_adjusted_purchase_cost'] = pitches.best_sell * (1 + market_fee)
     pitches['model_price_now'] = model_prices(pitches, pd.Timestamp.now('UTC'))
     pitches['predicted1y'] = pitches.model_price_now + (pitches.adjusted_slope * 365.25)
-
     pitches['fee_adjusted_sell_cost'] = pitches.predicted1y * (1 - market_fee)
     pitches['annual_return'] = -100 + 100 * pitches.fee_adjusted_sell_cost / pitches.fee_adjusted_purchase_cost
 
     # Calculate advanced strategy return
     pitches['strike_price_5%'] = 1.05 * pitches.fee_adjusted_purchase_cost / (1 - market_fee)  # Sell price to achive 5% return
-    pitches['days_to_5%'] = ((1.05 * pitches.fee_adjusted_purchase_cost) - pitches.model_price_now) \
-                            / (pitches.model_price_now * pitches.adjusted_slope * (1 - market_fee))
+    pitches['days_to_5%'] = (((1.05 * pitches.fee_adjusted_purchase_cost) / (1 - 0.0175)) - pitches.model_price_now) \
+                            / pitches.adjusted_slope
     pitches['APR_5%'] = 100 * (-1 + 1.05 ** (365.24 / pitches['days_to_5%']))
 
     return pitches
