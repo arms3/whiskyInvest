@@ -44,6 +44,15 @@ def format_distill(distill):
 
 pitches.formattedDistillery = pitches.formattedDistillery.map(format_distill)
 
+# Format summary table
+table = pitches[['whisky_type','days_to_close_spread','annual_return','r_value']]\
+                .query('r_value > 0.99').sort_values('annual_return',ascending=False)[:10]
+table['annual_return'] = table['annual_return'].map('{:.1f}%'.format)
+table.whisky_type = table.whisky_type.map(format_whisky_type)
+table.columns = ['Whisky','Days to Close Bid Ask Spread','Annual Return, %','Confidence (R Value)']
+
+
+
 
 def create_pitch(dff, strategy=None):
     """Creates the whisky returns by pitch chart"""
@@ -108,7 +117,24 @@ app.layout = html.Div([
 
 
 def best_returns_bar():
-    data = pitches.query('(r_value > 0.99)').sort_values('return', ascending=False)[:20].reset_index()
+    # top = pitches.query('(r_value > 0.99)').sort_values('annual_return', ascending=False)[:10].reset_index()
+    # percents = top['annual_return'].map('{:.1f}%'.format)
+    data = [go.Bar(
+        x=table['Whisky'],
+        y=table['Annual Return, %'], #* data.owned,
+        text=table['Annual Return, %'],
+        textposition="outside",
+        hoverinfo="x+name",
+        name='Best Returns',
+        # orientation='h'
+    )]
+    layout = dict(
+        # barmode='stack',
+        hovermode='closest',
+        yaxis={'showticklabels':False, 'showgrid':False},
+        legend={"orientation":"v","xanchor":"auto"},
+    )
+    return {'layout':layout, 'data':data}
 
 
 def Nav():
@@ -118,15 +144,29 @@ def Nav():
             html.A('Whisky Investor', className='navbar-brand', href='/'),
             html.Div([
                 html.Ul([
-                    html.Li([html.A('About', className='nav-link', href='/about')], className='nav-item'),
-                    html.Li([html.A('Summary', className='nav-link', href='/summary')], className='nav-item'),
-                    html.Li([html.A('Github', className='nav-link', href='https://github.com/arms3')], className='nav-item'),
+                    html.Li([html.A('Home', className='nav-link', href='/')], className='nav-item'),
+                    html.Li([html.A('Detail', className='nav-link', href='/detail')], className='nav-item'),
+                    html.Li([html.A('About Me', className='nav-link', href='/about')], className='nav-item'),
+                    # html.Li([html.A('Github', className='nav-link', href='https://github.com/arms3')], className='nav-item'),
                 ], className='navbar-nav'),
                 html.Ul([],className='nav navbar-nav ml-auto'),
             ], id='navbarResponsive',className='collapse navbar-collapse'),
         ], className='container')
     ], className="navbar navbar-expand-lg navbar-dark bg-dark")
     return nav
+
+
+contact_card = dbc.Card([
+    dbc.CardBody([
+        dbc.CardTitle("Contact Details"),
+    ]),
+    dbc.CardImg(src=app.get_asset_url('mug.jpg')),
+    dbc.CardBody([
+        dbc.Row(['email:',dbc.CardLink('angus.sinclair@mg.thedataincubator.com',href='mailto:angus.sinclair@mg.thedataincubator.com')]),
+        dbc.Row(['git:',dbc.CardLink('github.com/arms3/whiskyInvest',href='https://github.com/arms3/whiskyInvest')]),
+        dbc.Row(['app:',dbc.CardLink('whisky-invest.herokuapp.com',href='whisky-invest.herokuapp.com')]),
+    ]),
+], style={"max-width": "360px"}),
 
 
 about_page_layout = html.Div([
@@ -136,19 +176,32 @@ about_page_layout = html.Div([
     # Main container
     # Header
     html.Div([
-        html.Div([
-            html.Div([
-                html.Div([
-                    html.H1('What\'s this all about?', style={'margin-top':30}),
-                    dcc.Markdown(format_markdown('''
-                    - Fetches daily pricing from [whiskyinvestdirect.com](https://www.whiskyinvestdirect.com/)
-                    - Evaluates performance via linear regression
-                    - Creates a [dashboard](https://whisky-invest.herokuapp.com/) to display best performance whiskies
-                    - Adjusts for exchange fees and holding costs
-                    ''')),
-                ], className='col-lg-12')
-            ], className='row')
-        ], className='page-header'),
+        dbc.Row([
+            dbc.Col([
+                dbc.Row([
+                    html.P(dcc.Markdown(format_markdown("""
+                    # About Me
+                    - Management consultant with over 5 years industry experience
+                    - Focus on data science and machine learning
+                    - Drinker of good and bad whisky
+                    """))),
+                ]),
+                dbc.Row([
+                    html.P(dcc.Markdown(format_markdown('''
+                    # About this site
+                    ##### Technologies
+                    - Webscraper for pricing deployed on [AWS Lightsail](https://aws.amazon.com/lightsail/)
+                    - Daily analysis (batch forecasting and data aggregation) deployed on [AWS Data pipeline](https://aws.amazon.com/datapipeline/)
+                    - Webapp deployed on [Heroku](heroku.com), using [Flask](http://flask.pocoo.org/) and [Dash by Plot.ly](https://plot.ly/products/dash/)
+                    ##### Purpose
+                    - Fetches pricing and provides recommended whisky investments for the Scotch whisky trading platform [whiskyinvestdirect.com](https://www.whiskyinvestdirect.com/)
+                    - Evaluates projected performance of whiskies adjusted for exchange fees and holding costs
+                    - Hosts an interactive [dashboard](https://whisky-invest.herokuapp.com/) to display best performing whiskies in real time
+                    '''))),
+                ]),
+            ],width=6),
+            dbc.Col(contact_card),
+        ],style={'margin-top':30})
     ], className='container')
 ])
 
@@ -158,17 +211,29 @@ summary_table_layout = html.Div([
     dbc.Container(
         [
             dbc.Row([
-                dbc.Col([
-                    html.H2("Top performing whiskies"),
-                    html.P('List of top performing whiskies based on a 1 year buy and hold strategy. Including market fees and holding fees.'),
-                    dbc.Table.from_dataframe(pitches[['whisky_type','days_to_close_spread','annual_return','r_value']]\
-                                             .query('r_value > 0.98').sort_values('annual_return',ascending=False)[:10],
-                                             dark=False, responsive='md', hover=True, float_format='.2f')
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Jumbotron([
+                                html.H2('What is this website telling me?'),
+                                html.P(dcc.Markdown('This website helps you to pick the top performing whiskies on [whiskyinvestdirect.com](https://www.whiskyinvestdirect.com/).'),),
+                                html.Hr(className="my-2"),
+                                html.P("The performance of your investments depends on the strategy you use to buy and sell "
+                                        "whiskies. The annual returns calculated here are based on a buy and hold strategy for "
+                                        "one year. Included in this calculation are the buying and selling fees (1.75% for each "
+                                        "transaction), the bid ask spread, and the holding fees of 15p per month."),
+                                html.P(dbc.Button("Got it thanks", color="primary"), className="btn-sm", id="show-hide-button"),
+                            ], id='intro-text'),
+                    ],width=6),
                 ]),
                 dbc.Col([
-                    html.H2("Stuff here"),
+                    html.H2("Top performing whiskies"),
+                    # html.P('List of top performing whiskies based on a 1 year buy and hold strategy. Including market fees and holding fees.'),
+                    dbc.Table.from_dataframe(table, dark=False, responsive='md', hover=True, float_format='.2f', size='sm')
+                ]),
+                dbc.Col([
+                    # html.H2("Bar Chart Comparing Top Performing Whiskies"),
                     dbc.Row([
-
+                        dcc.Graph(figure=best_returns_bar(),id='returns-bar'),
                     ]),
                     dbc.Row([
 
@@ -177,6 +242,7 @@ summary_table_layout = html.Div([
             ],),
         ],  className="mt-4",)
 ])
+# SUMMARY TABLE VIEW
 
 
 # Main chart page
@@ -191,29 +257,29 @@ page_1_layout = html.Div([
             html.Div([
                 html.Div([
                     # html.H1('Whisky Price Explorer', style={'margin-top':30}),
-                    dbc.Jumbotron([
-                        html.H2('Choose Your Investment Strategy'),
-                        html.P(dcc.Markdown('This website helps you to pick the top performing whiskies on [whiskyinvestdirect.com](https://www.whiskyinvestdirect.com/).'),),
-                        html.Hr(className="my-2"),
-                        html.P("The performance of your investments depends on the strategy you use to buy and sell "
-                                "whiskies. Choose option 1 if you prefer to buy and hold onto them for a few years."
-                                "Choose option 2 if you are looking for the best return but are willing to buy and"
-                               "sell at the optimum point."),
-                        html.P(dbc.Button("Show me the whiskies", color="primary"), className="btn-sm", id="show-hide-button"),
-                    ], id='intro-text'),
+                    # dbc.Jumbotron([
+                    #     html.H2('Choose Your Investment Strategy'),
+                    #     html.P(dcc.Markdown('This website helps you to pick the top performing whiskies on [whiskyinvestdirect.com](https://www.whiskyinvestdirect.com/).'),),
+                    #     html.Hr(className="my-2"),
+                    #     html.P("The performance of your investments depends on the strategy you use to buy and sell "
+                    #             "whiskies. Choose option 1 if you prefer to buy and hold onto them for a few years."
+                    #             "Choose option 2 if you are looking for the best return but are willing to buy and"
+                    #            "sell at the optimum point."),
+                    #     html.P(dbc.Button("Show me the whiskies", color="primary"), className="btn-sm", id="show-hide-button"),
+                    # ], id='intro-text'),
 
                     # html.Button(id='show-hide-button', n_clicks=0, children='Show'),
-                    html.P(dbc.Row([
-                        dbc.RadioItems(
-                                    id='radio-strategy',
-                                    options=[{'label':'Option 1: I want to see whiskies for a buy and hold strategy','value':1},
-                                             {'label':'Option 2: I\'m looking for a higher rate of return','value':2}],
-                                    value=1,
-                                    labelStyle={'padding-left':'25px'},
-                                    style={'padding-right':'50px'}
-                        ),
-                        # dbc.Button("Show", color="primary", className="btn-sm", id='show-hide-button',),
-                    ])),
+                    # html.P(dbc.Row([
+                    #     dbc.RadioItems(
+                    #                 id='radio-strategy',
+                    #                 options=[{'label':'Option 1: I want to see whiskies for a buy and hold strategy','value':1},
+                    #                          {'label':'Option 2: I\'m looking for a higher rate of return','value':2}],
+                    #                 value=1,
+                    #                 labelStyle={'padding-left':'25px'},
+                    #                 style={'padding-right':'50px'}
+                    #     ),
+                    #     # dbc.Button("Show", color="primary", className="btn-sm", id='show-hide-button',),
+                    # ])),
                 ], className='col-lg-12', style={'margin-top':20})
             ], className='row')
         ], className='page-header'),
@@ -280,7 +346,7 @@ page_1_layout = html.Div([
                               style={'height':'100%'}),
                 ],className='card border-secondary mb-3', style={'height':650}), #'col-lg-6' style={'height':600} #className='card border-secondary mb-3',
             ],className='col-lg-6'),
-        ],className='row row-eq-height', id="chart-content", appear=False, is_in=False), #style={'display':'flex'} style={'visibility': 'hidden'}
+        ],className='row row-eq-height', id="chart-content", appear=False, is_in=True), #style={'display':'flex'} style={'visibility': 'hidden'}
 
         # Footer
         html.Footer([html.Div([html.Div([
@@ -299,13 +365,13 @@ page_1_layout = html.Div([
 ])
 
 
-@app.callback(Output('chart-content','is_in'),
-              [Input('show-hide-button','n_clicks')])
-def show_hide_charts(n):
-    if not n:
-        # Button has never been clicked
-        return False
-    return True
+# @app.callback(Output('chart-content','is_in'),
+#               [Input('show-hide-button','n_clicks')])
+# def show_hide_charts(n):
+#     if not n:
+#         # Button has never been clicked
+#         return False
+#     return True
 
 @app.callback(Output('show-hide-button','style'),
               [Input('show-hide-button','n_clicks')])
@@ -328,11 +394,11 @@ def show_hide_intro(n):
               [Input('url', 'pathname')])
 def display_page(pathname):
     if pathname == '/':
-        return page_1_layout
+        return summary_table_layout
     elif pathname == '/about':
         return about_page_layout
-    elif pathname == '/summary':
-        return summary_table_layout
+    elif pathname == '/detail':
+        return page_1_layout
     else:
         return page_1_layout
     # You could also return a 404 "URL not found" page here
@@ -356,9 +422,9 @@ def update_title(hoverData):
 @app.callback(
     Output('whisky-return-graph', 'figure'),
     [Input('distillery-dropdown', 'value'), Input('radio-high-correlation', 'value'),
-     Input('grain-malt-chooser', 'values'), Input('radio-strategy', 'value')]
+     Input('grain-malt-chooser', 'values'),] #Input('radio-strategy', 'value')]
 )
-def update_pitches(distilleries, radio, malt_grain, strategy):
+def update_pitches(distilleries, radio, malt_grain,): #strategy):
     # Check we have some distilleries selected otherwise show all
     if distilleries == None:
         dff = pitches
@@ -379,10 +445,10 @@ def update_pitches(distilleries, radio, malt_grain, strategy):
         malt_grain = [malt_grain_format[x] for x in malt_grain]
         dff = dff[dff.categoryName.isin(malt_grain)]
 
-    if strategy == 2:
-        return create_pitch(dff, 2)
-    else:
-        return create_pitch(dff, 1)
+    # if strategy == 2:
+    #     return create_pitch(dff, 2)
+    # else:
+    return create_pitch(dff, 1)
 
 
 def create_time_series(dff, axis_type, title):
