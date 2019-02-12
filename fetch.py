@@ -172,6 +172,12 @@ def calc_returns(pitches):
     pitches['fee_adjusted_sell_cost'] = pitches.predicted1y * (1 - market_fee)
     pitches['annual_return'] = -100 + 100 * pitches.fee_adjusted_sell_cost / pitches.fee_adjusted_purchase_cost
 
+    # Update return for owned whiskies
+    if 'owned' in pitches.columns:
+        # What is the increase in capital of expected sell in 1 year v. sell price now (after fees)
+        annual_return_if_owned = -100 + 100 * pitches.predicted1y * (1-market_fee) / (pitches.best_buy * (1-market_fee))
+        pitches['annual_return'] = (pitches.owned * annual_return_if_owned) + (~pitches.owned * pitches.annual_return)
+
     # Calculate advanced strategy return
     pitches['strike_price_5%'] = 1.05 * pitches.fee_adjusted_purchase_cost / (1 - market_fee)  # Sell price to achive 5% return
     pitches['days_to_5%'] = (((1.05 * pitches.fee_adjusted_purchase_cost) / (1 - 0.0175)) - pitches.model_price_now) \
