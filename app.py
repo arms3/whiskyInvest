@@ -116,21 +116,32 @@ app.layout = html.Div([
 
 
 def best_returns_bar():
-    # top = pitches.query('(r_value > 0.99)').sort_values('annual_return', ascending=False)[:10].reset_index()
-    # percents = top['annual_return'].map('{:.1f}%'.format)
-    data = [go.Bar(
-        x=table['Whisky'],
-        y=table['Annual Return, %'], #* data.owned,
-        text=table['Annual Return, %'],
-        textposition="outside",
-        hoverinfo="x+name",
-        name='Best Returns',
-        # orientation='h'
-    )]
+    data = [
+        go.Bar(
+            x=table['Whisky'],
+            y=table['Annual Return, %'] * ~table['Own?'],
+            text=table['Annual Return, %'],
+            textposition="inside",
+            hoverinfo="x+name",
+            name='Not Owned', ),
+        go.Bar(
+            x=table['Whisky'],
+            y=table['Annual Return, %'] * table['Own?'],
+            text=table['Annual Return, %'],
+            textposition="inside",
+            hoverinfo="x+name",
+            name='Owned',),
+    ]
+
+    if sum(table['Own?']) == 0:
+        data = [data[0]]
+
     layout = dict(
-        # barmode='stack',
+        colorway=['#053061', '#ff610b', '#a3156d'],
+        barmode='stack',
         hovermode='closest',
         yaxis={'showticklabels':False, 'showgrid':False},
+        xaxis={'automargin': True},
         legend={"orientation":"v","xanchor":"auto"},
     )
     return {'layout':layout, 'data':data}
