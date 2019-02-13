@@ -234,26 +234,89 @@ summary_table_layout = html.Div([
                                         "transaction), the bid ask spread, and the holding fees of 15p per month."),
                                 html.P(dbc.Button("Got it thanks", color="primary"), className="btn-sm", id="show-hide-button"),
                             ], id='intro-text'),
-                    ],width=6),
+                    ],width=8, align='center'),
                 ]),
                 dbc.Col([
                     html.H2("Top performing whiskies"),
-                    # html.P('List of top performing whiskies based on a 1 year buy and hold strategy. Including market fees and holding fees.'),
-                    dbc.Table.from_dataframe(table, dark=False, responsive='md', hover=True, float_format='.2f', size='sm')
+                    html.Div([dbc.Table.from_dataframe(table, dark=False, responsive='md', hover=True,
+                                                       float_format='.2f', size='sm')],id='summary-table'),
                 ]),
                 dbc.Col([
                     # html.H2("Bar Chart Comparing Top Performing Whiskies"),
                     dbc.Row([
-                        dcc.Graph(figure=best_returns_bar(),id='returns-bar'),
+                        dcc.Graph(figure=best_returns_bar(),id='returns-bar', style={'margin-bottom':30}),
                     ]),
+                    dbc.Row(html.H5("Input whiskies you own")),
+                    dbc.Row(html.P("To see the relative return of holding whiskies you currently own. This compares "
+                                   "the current sale value compared to the projected sales value in 1 year",
+                                   className="text-primary")),
                     dbc.Row([
-
+                        dcc.Dropdown(
+                            id='whisky-dropdown',
+                            options=pitches[['formatted_whisky']].reset_index().drop_duplicates() \
+                                .rename({'formatted_whisky': 'label', 'pitchId': 'value'}, axis=1).to_dict(
+                                orient='rows'),
+                            multi=True,
+                            style={'width':'100%'},
+                        ),
                     ]),
                 ])
             ],),
-        ],  className="mt-4",)
+        ],  className="mt-4",),
+    html.Div(id='intermediate-value', style={'display': 'none'}),
 ])
-# SUMMARY TABLE VIEW
+
+
+@app.callback(
+    Output('intermediate-value', 'children'),
+    [Input(component_id='whisky-dropdown', component_property='value')]
+)
+def fetch_intermediate(value):
+    # single fetch call for both table and chart
+    global pitches
+    pitches['owned'] = False
+    table = pitches.query('r_value > 0.99').sort_values('annual_return',ascending=False)[:10]
+    if value == '' or value is None:
+        return table.to_json(orient='split')
+
+    # Do pitches and recalc returns based on owned.
+    owned = pd.DataFrame({'pitchId': value, 'owned': np.ones(len(value), dtype=bool)}).set_index('pitchId')
+    pitches.drop('owned', axis=1, inplace=True)
+    pitches = pitches.join(owned, how='outer')
+    pitches.owned = ~pitches.owned.isna()
+    owned = calc_returns(pitches[pitches.owned])
+    table = pd.concat([table, owned],axis=0).sort_values('annual_return', ascending=False)[:20].drop_duplicates('securityId')
+    return table.to_json(orient='split')
+
+@app.callback(
+    Output('summary-table', 'children'),
+    [Input('intermediate-value', 'children')]
+)
+def update_table(json):
+    if json is None:
+        return dbc.Table.from_dataframe(table, dark=False, responsive='md', hover=True, float_format='.2f', size='sm')
+    df = pd.read_json(json, orient='split')
+    df = df[['formatted_whisky', 'days_to_close_spread', 'annual_return', 'r_value', 'owned']]
+    df['annual_return'] = df['annual_return'].map('{:.1f}%'.format)
+    df = df.replace({'owned':{True:'✓',False:'✗'}})
+    df.columns = ['Whisky', 'Days to Close Bid Ask Spread', 'Annual Return, %', 'Confidence (R Value)', 'Own?']
+    return dbc.Table.from_dataframe(df, dark=False, responsive='md', hover=True, float_format='.2f', size='sm')
+
+
+@app.callback(
+    Output('returns-bar', 'figure'),
+    [Input('intermediate-value', 'children')]
+)
+def update_bar_chart(json):
+    if json is None:
+        return best_returns_bar()
+    global table
+    table = pd.read_json(json, orient='split')
+    table = table[['formatted_whisky', 'days_to_close_spread', 'annual_return', 'r_value', 'owned']]
+    table['annual_return'] = table['annual_return'].map('{:.1f}%'.format)
+    # table = table.replace({'owned': {True: '✓', False: '✗'}})
+    table.columns = ['Whisky', 'Days to Close Bid Ask Spread', 'Annual Return, %', 'Confidence (R Value)', 'Own?']
+    return best_returns_bar()
 
 
 # Main chart page
