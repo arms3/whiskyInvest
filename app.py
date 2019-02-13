@@ -19,77 +19,13 @@ pitches, all_whisky = get_from_s3()
 # TODO: use flask-cache to save calls to whisky site
 # https://pythonhosted.org/Flask-Cache/
 
+# Main app definition
 server = flask.Flask(__name__)
-external_stylesheets = [
-    # 'https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css',
-    'https://stackpath.bootstrapcdn.com/bootswatch/4.2.1/lux/bootstrap.min.css',
-    # 'https://fonts.googleapis.com/css?family=Montserrat:400,700',
-    ]
-
+external_stylesheets = ['https://stackpath.bootstrapcdn.com/bootswatch/4.2.1/lux/bootstrap.min.css',]
 server.secret_key = os.environ.get('secret_key', str(randint(0, 1000000)))
 app = dash.Dash(__name__, server=server,
                 external_stylesheets=external_stylesheets)
 app.config.suppress_callback_exceptions = True
-
-
-def format_whisky_type(whisky_type):
-    m = {'BBF': 'First fill bourbon', 'BBR': 'Refill bourbon', 'HHR': 'Refill hogshead', 'SBR': 'Refill sherry butt'}
-    processed  = whisky_type.split('_')
-    processed[0] = ' '.join([x[0].upper() + x[1:] for x in processed[0].split('-')])
-    processed[-1] = m[processed[-1]]
-    return ' '.join(processed)
-
-
-def format_distill(distill):
-    return ' '.join([x[0].upper() + x[1:] for x in distill.split('-')])
-
-pitches.formattedDistillery = pitches.formattedDistillery.map(format_distill)
-pitches['formatted_whisky'] = pitches.whisky_type.map(format_whisky_type)
-
-# Format summary table
-table = pitches[['formatted_whisky','days_to_close_spread','annual_return','r_value']]\
-                .query('r_value > 0.99').sort_values('annual_return',ascending=False)[:10]
-# table['annual_return'] = table['annual_return'].map('{:.1f}%'.format)
-table['owned'] = False
-table.columns = ['Whisky','Days to Close Bid Ask Spread','Annual Return, %','Confidence (R Value)','Own?']
-
-
-
-def create_pitch(dff, strategy=None):
-    """Creates the whisky returns by pitch chart"""
-    data = []
-    if strategy == 2:
-        xcol = 'annual_return'
-        xtitle = 'Annual % return'
-        ycol = 'APR_5%'
-        ytitle = 'Compound Annual Return, %'
-    else:
-        xcol = 'days_to_close_spread'
-        xtitle = 'Number of days to close bid ask spread'
-        ycol = 'annual_return'
-        ytitle = 'Annual Return, %'
-
-    for name, grp in dff.groupby('distillery'):
-        data.append(
-            dict(x=grp[xcol], y=grp[ycol], text=grp.whisky_type.map(format_whisky_type),
-                 mode='markers', name=grp.formattedDistillery.iloc[0], customdata=grp.index,
-                 marker=dict(size=17, opacity=0.7, line={'color': 'rgb(255, 255, 255)', 'width': 1}))
-        )
-
-    figure = {'layout':
-                  dict(title=None,
-                       autosize=True,
-                       xaxis={'title': xtitle,  'showline': False, 'zeroline': False, }, #'rangemode':'nonnegative',
-                       yaxis={'title': ytitle, 'showline': False, 'zeroline': True, }, #'rangemode': 'nonnegative',
-                       hovermode='closest', font={'family': 'inherit'},
-                       modebar={'orientation': 'h'}, legend={'orientation': 'v'},
-                       hoverlabel=dict(bordercolor='rgba(255, 255, 255, 0)', font={'color': '#ffffff'}),
-                       margin={'l': 50, 'b': 50, 'r': 10, 't': 10}),
-              'data': data}
-    return figure
-
-def format_markdown(text):
-    return re.sub(r'\n\s+','\n',text)
 
 # Default template to load. Can customize favicon
 app.index_string = '''
@@ -117,6 +53,83 @@ app.layout = html.Div([
 ])
 
 
+# Update the index
+@app.callback(Output('page-content', 'children'),
+              [Input('url', 'pathname')])
+def display_page(pathname):
+    if pathname == '/':
+        return summary_table_layout
+    elif pathname == '/about':
+        return about_page_layout
+    elif pathname == '/detail':
+        return page_1_layout
+    else:
+        return page_1_layout
+    # You could also return a 404 "URL not found" page here
+
+
+# Formatting helpers
+def format_whisky_type(whisky_type):
+    m = {'BBF': 'First fill bourbon', 'BBR': 'Refill bourbon', 'HHR': 'Refill hogshead', 'SBR': 'Refill sherry butt'}
+    processed = whisky_type.split('_')
+    processed[0] = ' '.join([x[0].upper() + x[1:] for x in processed[0].split('-')])
+    processed[-1] = m[processed[-1]]
+    return ' '.join(processed)
+
+
+def format_distill(distill):
+    return ' '.join([x[0].upper() + x[1:] for x in distill.split('-')])
+
+
+def format_markdown(text):
+    return re.sub(r'\n\s+','\n',text)
+
+
+# Formatting of pitches
+pitches.formattedDistillery = pitches.formattedDistillery.map(format_distill)
+pitches['formatted_whisky'] = pitches.whisky_type.map(format_whisky_type)
+
+# Format summary table
+table = pitches[['formatted_whisky','days_to_close_spread','annual_return','r_value']]\
+                .query('r_value > 0.99').sort_values('annual_return',ascending=False)[:10].copy()
+table['owned'] = False
+table.columns = ['Whisky', 'Days to Close Bid Ask Spread', 'Annual Return, %', 'Confidence (R Value)', 'Own?']
+
+
+def create_pitch(dff, strategy=None):
+    """Creates the whisky returns by pitch chart"""
+    data = []
+    if strategy == 2:
+        xcol = 'annual_return'
+        xtitle = 'Annual % return'
+        ycol = 'APR_5%'
+        ytitle = 'Compound Annual Return, %'
+    else:
+        xcol = 'days_to_close_spread'
+        xtitle = 'Number of days to close bid ask spread'
+        ycol = 'annual_return'
+        ytitle = 'Annual Return, %'
+
+    for name, grp in dff.groupby('distillery'):
+        data.append(
+            dict(x=grp[xcol], y=grp[ycol], text=grp.whisky_type.map(format_whisky_type),
+                 mode='markers', name=grp.formattedDistillery.iloc[0], customdata=grp.index,
+                 marker=dict(size=17, opacity=0.7, line={'color': 'rgb(255, 255, 255)', 'width': 1}))
+        )
+
+    figure = {'layout':
+              dict(title=None,
+                   autosize=True,
+                   xaxis={'title': xtitle, 'showline': False, 'zeroline': False, },
+                   yaxis={'title': ytitle, 'showline': False, 'zeroline': True, },
+                   hovermode='closest', font={'family': 'inherit'},
+                   modebar={'orientation': 'h'}, legend={'orientation': 'v'},
+                   hoverlabel=dict(bordercolor='rgba(255, 255, 255, 0)', font={'color': '#ffffff'}),
+                   margin={'l': 50, 'b': 50, 'r': 10, 't': 10}),
+              'data': data}
+    return figure
+
+
 def best_returns_bar():
     data = [
         go.Bar(
@@ -142,30 +155,41 @@ def best_returns_bar():
         colorway=['#053061', '#ff610b', '#a3156d'],
         barmode='stack',
         hovermode='closest',
-        yaxis={'showticklabels':False, 'showgrid':False},
+        yaxis={'showticklabels': False, 'showgrid': False},
         xaxis={'automargin': True},
         legend={"orientation":"v","xanchor":"auto"},
     )
-    return {'layout':layout, 'data':data}
+    return {'layout': layout, 'data': data}
 
 
-def Nav():
-    nav = html.Nav(children=[
+# Common Parts
+Nav = html.Nav(children=[
+    html.Div([
+        html.Img(src='/assets/whiskey.svg',height=40),
+        html.A('Whisky Investor', className='navbar-brand', href='/'),
         html.Div([
-            html.Img(src='/assets/whiskey.svg',height=40),
-            html.A('Whisky Investor', className='navbar-brand', href='/'),
-            html.Div([
-                html.Ul([
-                    html.Li([html.A('Home', className='nav-link', href='/')], className='nav-item'),
-                    html.Li([html.A('Detail', className='nav-link', href='/detail')], className='nav-item'),
-                    html.Li([html.A('About', className='nav-link', href='/about')], className='nav-item'),
-                ], className='navbar-nav'),
-                html.Ul([],className='nav navbar-nav ml-auto'),
-            ], id='navbarResponsive',className='collapse navbar-collapse'),
-        ], className='container')
-    ], className="navbar navbar-expand-lg navbar-dark bg-dark")
-    return nav
+            html.Ul([
+                html.Li([html.A('Home', className='nav-link', href='/')], className='nav-item'),
+                html.Li([html.A('Detail', className='nav-link', href='/detail')], className='nav-item'),
+                html.Li([html.A('About', className='nav-link', href='/about')], className='nav-item'),
+            ], className='navbar-nav'),
+            html.Ul([],className='nav navbar-nav ml-auto'),
+        ], id='navbarResponsive',className='collapse navbar-collapse'),
+    ], className='container')
+], className="navbar navbar-expand-lg navbar-dark bg-dark")
 
+Footer = html.Footer([
+    html.Div([
+        html.Div([
+            html.Ul([
+                html.Li(html.A('Back to top',href='#top'),className='float-lg-right'),
+            ],className='list-unstyled'),
+            dcc.Markdown('''Created by [Angus Sinclair](https://github.com/arms3)  
+Icons made by [Freepik](https://www.freepik.com/) from [www.flaticon.com](https://www.flaticon.com/) is licensed by
+[CC 3.0 BY](http://creativecommons.org/licenses/by/3.0/)'''),
+        ],className='col-lg-12'),
+    ],className='row'),
+],id='footer')
 
 contact_card = dbc.Card([
     dbc.CardHeader(html.H3("Contact Details",style={'margin':0})),
@@ -183,10 +207,9 @@ contact_card = dbc.Card([
 
 about_page_layout = html.Div([
     # Navbar
-    Nav(),
+    Nav,
 
     # Main container
-    # Header
     html.Div([
         dbc.Row([
             dbc.Col([
@@ -209,55 +232,62 @@ about_page_layout = html.Div([
     ], className='container', style={'margin-left':30}),
 ])
 
-
 summary_table_layout = html.Div([
-    Nav(),
-    dbc.Container(
-        [
+    Nav,
+    dbc.Container([
+        dbc.Row([
             dbc.Row([
+                dbc.Col([
+                    dbc.Jumbotron([
+                        html.H2('What is this website telling me?'),
+                        html.P(dcc.Markdown('This website helps you to pick the top performing whiskies on [whiskyinvestdirect.com](https://www.whiskyinvestdirect.com/).'),),
+                        html.Hr(className="my-2"),
+                        html.P("The performance of your investments depends on the strategy you use to buy and sell "
+                                "whiskies. The annual returns calculated here are based on a buy and hold strategy for "
+                                "one year. Included in this calculation are the buying and selling fees (1.75% for each "
+                                "transaction), the bid ask spread, and the holding fees of 15p per month."),
+                        html.P(dbc.Button("Got it thanks", color="primary"), className="btn-sm", id="show-hide-button"),
+                    ], id='intro-text'),
+                ],width=8, align='center'),
+            ]),
+            dbc.Col([
+                html.H2("Top performing whiskies"),
+                html.Div([dbc.Table.from_dataframe(table, dark=False, responsive='md', hover=True,
+                                                   float_format='.2f', size='sm')],id='summary-table'),
+            ]),
+            dbc.Col([
                 dbc.Row([
-                    dbc.Col([
-                        dbc.Jumbotron([
-                                html.H2('What is this website telling me?'),
-                                html.P(dcc.Markdown('This website helps you to pick the top performing whiskies on [whiskyinvestdirect.com](https://www.whiskyinvestdirect.com/).'),),
-                                html.Hr(className="my-2"),
-                                html.P("The performance of your investments depends on the strategy you use to buy and sell "
-                                        "whiskies. The annual returns calculated here are based on a buy and hold strategy for "
-                                        "one year. Included in this calculation are the buying and selling fees (1.75% for each "
-                                        "transaction), the bid ask spread, and the holding fees of 15p per month."),
-                                html.P(dbc.Button("Got it thanks", color="primary"), className="btn-sm", id="show-hide-button"),
-                            ], id='intro-text'),
-                    ],width=8, align='center'),
+                    dcc.Graph(figure=best_returns_bar(),id='returns-bar', style={'margin-bottom':30}),
                 ]),
-                dbc.Col([
-                    html.H2("Top performing whiskies"),
-                    html.Div([dbc.Table.from_dataframe(table, dark=False, responsive='md', hover=True,
-                                                       float_format='.2f', size='sm')],id='summary-table'),
+                dbc.Row(html.H5("Input whiskies you own")),
+                dbc.Row(html.P("To see the relative return of holding whiskies you currently own. This compares "
+                               "the current sale value to the projected sales value in 1 year",
+                               className="text-primary")),
+                dbc.Row([
+                    dcc.Dropdown(
+                        id='whisky-dropdown',
+                        options=pitches[['formatted_whisky']].reset_index().drop_duplicates() \
+                            .rename({'formatted_whisky': 'label', 'pitchId': 'value'}, axis=1).to_dict(
+                            orient='rows'),
+                        multi=True,
+                        style={'width':'100%', 'margin-bottom':50},
+                    ),
                 ]),
-                dbc.Col([
-                    # html.H2("Bar Chart Comparing Top Performing Whiskies"),
-                    dbc.Row([
-                        dcc.Graph(figure=best_returns_bar(),id='returns-bar', style={'margin-bottom':30}),
-                    ]),
-                    dbc.Row(html.H5("Input whiskies you own")),
-                    dbc.Row(html.P("To see the relative return of holding whiskies you currently own. This compares "
-                                   "the current sale value to the projected sales value in 1 year",
-                                   className="text-primary")),
-                    dbc.Row([
-                        dcc.Dropdown(
-                            id='whisky-dropdown',
-                            options=pitches[['formatted_whisky']].reset_index().drop_duplicates() \
-                                .rename({'formatted_whisky': 'label', 'pitchId': 'value'}, axis=1).to_dict(
-                                orient='rows'),
-                            multi=True,
-                            style={'width':'100%'},
-                        ),
-                    ]),
-                ])
-            ],),
+            ])
+        ],),
+        Footer,
         ],  className="mt-4",),
     html.Div(id='intermediate-value', style={'display': 'none'}),
 ])
+
+
+@app.callback(Output('intro-text','style'),
+              [Input('show-hide-button','n_clicks')])
+def show_hide_intro(n):
+    if not n:
+        # Button has never been clicked
+        return {}
+    return {'display': 'none'}
 
 
 @app.callback(
@@ -272,7 +302,7 @@ def fetch_intermediate(value):
     if value == '' or value is None:
         return table.to_json(orient='split')
 
-    # Do pitches and recalc returns based on owned.
+    # Do pitches and recalculate returns based on owned.
     owned = pd.DataFrame({'pitchId': value, 'owned': np.ones(len(value), dtype=bool)}).set_index('pitchId')
     pitches.drop('owned', axis=1, inplace=True)
     pitches = pitches.join(owned, how='outer')
@@ -313,40 +343,14 @@ def update_bar_chart(json):
 
 
 # Main chart page
-# TODO: Update this to use dash-bootsrap components
-# https://dash-bootstrap-components.opensource.asidatascience.com/
 page_1_layout = html.Div([
-    Nav(),
+    Nav,
     # Main container
     html.Div([
         # Header
         html.Div([
             html.Div([
                 html.Div([
-                    # html.H1('Whisky Price Explorer', style={'margin-top':30}),
-                    # dbc.Jumbotron([
-                    #     html.H2('Choose Your Investment Strategy'),
-                    #     html.P(dcc.Markdown('This website helps you to pick the top performing whiskies on [whiskyinvestdirect.com](https://www.whiskyinvestdirect.com/).'),),
-                    #     html.Hr(className="my-2"),
-                    #     html.P("The performance of your investments depends on the strategy you use to buy and sell "
-                    #             "whiskies. Choose option 1 if you prefer to buy and hold onto them for a few years."
-                    #             "Choose option 2 if you are looking for the best return but are willing to buy and"
-                    #            "sell at the optimum point."),
-                    #     html.P(dbc.Button("Show me the whiskies", color="primary"), className="btn-sm", id="show-hide-button"),
-                    # ], id='intro-text'),
-
-                    # html.Button(id='show-hide-button', n_clicks=0, children='Show'),
-                    # html.P(dbc.Row([
-                    #     dbc.RadioItems(
-                    #                 id='radio-strategy',
-                    #                 options=[{'label':'Option 1: I want to see whiskies for a buy and hold strategy','value':1},
-                    #                          {'label':'Option 2: I\'m looking for a higher rate of return','value':2}],
-                    #                 value=1,
-                    #                 labelStyle={'padding-left':'25px'},
-                    #                 style={'padding-right':'50px'}
-                    #     ),
-                    #     # dbc.Button("Show", color="primary", className="btn-sm", id='show-hide-button',),
-                    # ])),
                 ], className='col-lg-12', style={'margin-top':20})
             ], className='row')
         ], className='page-header'),
@@ -356,8 +360,10 @@ page_1_layout = html.Div([
             html.Div([
                 html.Div([
                     # Left chart
-                    html.Div([html.H3('Predicted Returns', style={'display':'inline-block','margin-bottom':'0px'})], className='card-header'), #className='card-header'
+                    html.Div([html.H3('Predicted Returns', style={'display':'inline-block','margin-bottom':'0px'})],
+                             className='card-header'),
                     html.Div([
+
                         # Distillery picker
                         html.Div([
                             html.Div([
@@ -369,6 +375,8 @@ page_1_layout = html.Div([
                                     multi=True,
                                 ),
                             ], className='col-lg-9', style={'padding-left':'0px'}),
+
+                            # Radio items
                             html.Div([
                                 dcc.RadioItems(
                                     id='radio-high-correlation',
@@ -378,6 +386,7 @@ page_1_layout = html.Div([
                                 ),
                             ], className='float-lg-right'),
                         ], className='row', style={'margin':'5px'}),
+
                         # Malt picker
                         html.Div([
                             dcc.Checklist(
@@ -386,6 +395,7 @@ page_1_layout = html.Div([
                                 values=['Single Malt','Grain'],
                                 labelStyle={'display': 'inline-block', 'margin': '5px'},),
                         ], className='row', style={'margin':'5px'}),
+
                         # Chart row
                         html.Div([
                             # html.Div([
@@ -396,79 +406,32 @@ page_1_layout = html.Div([
                                 # figure=create_pitch(pitches),
                                 style={'height':'100%', 'width':'100%'}
                             ),
-                            # ],className='container',style={'height':'100%'}), #style={'overflow':'hidden'}
                         ], className='row', style={'margin':'5px','height':450})
+
                     ],className='section'),
-                ], className='card border-secondary mb-3', style={'height':650}), #col-lg-6 style={'height':600} #className='card border-secondary mb-3'
+                ], className='card border-secondary mb-3', style={'height':650}),
             ],className='col-lg-6'),
+
             # Right Side
             html.Div([
                 html.Div([
                     html.Div([html.H3('Price History',style={'display':'inline-block','margin-bottom':'0px'}),
-                              html.P('Filler', id='single-whisky-title', className='float-right', style={'margin-bottom': '0px'})],
-                             className='card-header'), #className='card-header'
-                    # html.Div([html.P('Hello',className='lead')], className='row', style={'margin':'5px'}),
+                              html.P('Filler', id='single-whisky-title', className='float-right',
+                                     style={'margin-bottom': '0px'})],
+                             className='card-header'),
+
                     dcc.Graph(id='single-whisky-chart',
-                              # style={'width': 850,'height':550},
                               style={'height':'100%'}),
-                ],className='card border-secondary mb-3', style={'height':650}), #'col-lg-6' style={'height':600} #className='card border-secondary mb-3',
+                ],className='card border-secondary mb-3', style={'height':650}),
             ],className='col-lg-6'),
-        ],className='row row-eq-height', id="chart-content", appear=False, is_in=True), #style={'display':'flex'} style={'visibility': 'hidden'}
+
+        ],className='row row-eq-height', id="chart-content", appear=False, is_in=True),
 
         # Footer
-        html.Footer([html.Div([html.Div([
-            html.Ul([
-                    html.Li(html.A('Back to top',href='#top'),className='float-lg-right'),
-                    # html.Li(html.A('Home',href='/')),
-                    # html.Li(html.A('About',href='/about')),
-                    # html.Li(html.A('GitHub',href='https://github.com/arms3')),
-            ],className='list-unstyled'),
-            dcc.Markdown('''Created by [Angus Sinclair](https://github.com/arms3)'''),
-            Template.from_string(
-                '''<P>Icons made by <a href="https://www.freepik.com/" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" 			    title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" 			    title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></P>'''),
-            ],className='col-lg-12'),],className='row'),
-        ],id='footer'),
+        Footer,
+
     ], className="container"),
 ])
-
-
-# @app.callback(Output('chart-content','is_in'),
-#               [Input('show-hide-button','n_clicks')])
-# def show_hide_charts(n):
-#     if not n:
-#         # Button has never been clicked
-#         return False
-#     return True
-
-@app.callback(Output('show-hide-button','style'),
-              [Input('show-hide-button','n_clicks')])
-def show_hide_button(n):
-    if not n:
-        # Button has never been clicked
-        return {}
-    return {'display': 'none'}
-
-@app.callback(Output('intro-text','style'),
-              [Input('show-hide-button','n_clicks')])
-def show_hide_intro(n):
-    if not n:
-        # Button has never been clicked
-        return {}
-    return {'display': 'none'}
-
-# Update the index
-@app.callback(Output('page-content', 'children'),
-              [Input('url', 'pathname')])
-def display_page(pathname):
-    if pathname == '/':
-        return summary_table_layout
-    elif pathname == '/about':
-        return about_page_layout
-    elif pathname == '/detail':
-        return page_1_layout
-    else:
-        return page_1_layout
-    # You could also return a 404 "URL not found" page here
 
 
 @app.callback(
