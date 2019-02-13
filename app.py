@@ -175,7 +175,7 @@ contact_card = dbc.Card([
             dbc.Row(['email: ', dbc.CardLink('angus.sinclair@mg.thedataincubator.com', href='mailto:angus.sinclair@mg.thedataincubator.com')]),
             dbc.Row(['git: ', dbc.CardLink('github.com/arms3/whiskyInvest', href='https://github.com/arms3/whiskyInvest')]),
             dbc.Row(['app: ', dbc.CardLink('whisky-invest.herokuapp.com', href='https://whisky-invest.herokuapp.com')]),
-            dbc.Row(['me: ', html.P('Drinker of good and bad whisky', className='text-primary')]),
+            dbc.Row(['about me: ', html.P('Drinker of good and bad whisky', className='text-primary')]),
         ], width=9, align='center'),
     ]),
 ])
@@ -241,7 +241,7 @@ summary_table_layout = html.Div([
                     ]),
                     dbc.Row(html.H5("Input whiskies you own")),
                     dbc.Row(html.P("To see the relative return of holding whiskies you currently own. This compares "
-                                   "the current sale value compared to the projected sales value in 1 year",
+                                   "the current sale value to the projected sales value in 1 year",
                                    className="text-primary")),
                     dbc.Row([
                         dcc.Dropdown(
