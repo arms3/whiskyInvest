@@ -167,16 +167,17 @@ def Nav():
 
 
 contact_card = dbc.Card([
-    dbc.CardBody([
-        dbc.CardTitle("Contact Details"),
+    dbc.CardHeader(html.H3("Contact Details",style={'margin':0})),
+    dbc.Row([
+        dbc.Col(dbc.CardImg(src=app.get_asset_url('mug.jpg'), style={'max-width': '120px'}), width=3),
+        dbc.Col([
+            dbc.Row(['email: ', dbc.CardLink('angus.sinclair@mg.thedataincubator.com', href='mailto:angus.sinclair@mg.thedataincubator.com')]),
+            dbc.Row(['git: ', dbc.CardLink('github.com/arms3/whiskyInvest', href='https://github.com/arms3/whiskyInvest')]),
+            dbc.Row(['app: ', dbc.CardLink('whisky-invest.herokuapp.com', href='https://whisky-invest.herokuapp.com')]),
+            dbc.Row(['me: ', html.P('Drinker of good and bad whisky', className='text-primary')]),
+        ], width=9, align='center'),
     ]),
-    dbc.CardImg(src=app.get_asset_url('mug.jpg')),
-    dbc.CardBody([
-        dbc.Row(['email:',dbc.CardLink('angus.sinclair@mg.thedataincubator.com',href='mailto:angus.sinclair@mg.thedataincubator.com')]),
-        dbc.Row(['git:',dbc.CardLink('github.com/arms3/whiskyInvest',href='https://github.com/arms3/whiskyInvest')]),
-        dbc.Row(['app:',dbc.CardLink('whisky-invest.herokuapp.com',href='whisky-invest.herokuapp.com')]),
-    ]),
-], style={"max-width": "360px"}),
+])
 
 
 about_page_layout = html.Div([
