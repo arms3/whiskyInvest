@@ -9,6 +9,8 @@ import os
 from random import randint
 import plotly.graph_objs as go
 import re
+import pandas as pd
+import numpy as np
 
 # Load up and analyse data
 from fetch import get_from_s3, calc_returns
@@ -42,14 +44,14 @@ def format_distill(distill):
     return ' '.join([x[0].upper() + x[1:] for x in distill.split('-')])
 
 pitches.formattedDistillery = pitches.formattedDistillery.map(format_distill)
+pitches['formatted_whisky'] = pitches.whisky_type.map(format_whisky_type)
 
 # Format summary table
-table = pitches[['whisky_type','days_to_close_spread','annual_return','r_value']]\
+table = pitches[['formatted_whisky','days_to_close_spread','annual_return','r_value']]\
                 .query('r_value > 0.99').sort_values('annual_return',ascending=False)[:10]
-table['annual_return'] = table['annual_return'].map('{:.1f}%'.format)
-table.whisky_type = table.whisky_type.map(format_whisky_type)
-table.columns = ['Whisky','Days to Close Bid Ask Spread','Annual Return, %','Confidence (R Value)']
-
+# table['annual_return'] = table['annual_return'].map('{:.1f}%'.format)
+table['owned'] = False
+table.columns = ['Whisky','Days to Close Bid Ask Spread','Annual Return, %','Confidence (R Value)','Own?']
 
 
 
@@ -156,8 +158,7 @@ def Nav():
                 html.Ul([
                     html.Li([html.A('Home', className='nav-link', href='/')], className='nav-item'),
                     html.Li([html.A('Detail', className='nav-link', href='/detail')], className='nav-item'),
-                    html.Li([html.A('About Me', className='nav-link', href='/about')], className='nav-item'),
-                    # html.Li([html.A('Github', className='nav-link', href='https://github.com/arms3')], className='nav-item'),
+                    html.Li([html.A('About', className='nav-link', href='/about')], className='nav-item'),
                 ], className='navbar-nav'),
                 html.Ul([],className='nav navbar-nav ml-auto'),
             ], id='navbarResponsive',className='collapse navbar-collapse'),
@@ -190,16 +191,8 @@ about_page_layout = html.Div([
         dbc.Row([
             dbc.Col([
                 dbc.Row([
-                    html.P(dcc.Markdown(format_markdown("""
-                    # About Me
-                    - Management consultant with over 5 years industry experience
-                    - Focus on data science and machine learning
-                    - Drinker of good and bad whisky
-                    """))),
-                ]),
-                dbc.Row([
                     html.P(dcc.Markdown(format_markdown('''
-                    # About this site
+                    ## About this site
                     ##### Technologies
                     - Webscraper for pricing deployed on [AWS Lightsail](https://aws.amazon.com/lightsail/)
                     - Daily analysis (batch forecasting and data aggregation) deployed on [AWS Data pipeline](https://aws.amazon.com/datapipeline/)
@@ -211,9 +204,9 @@ about_page_layout = html.Div([
                     '''))),
                 ]),
             ],width=6),
-            dbc.Col(contact_card),
+            dbc.Col(contact_card, width=5),
         ],style={'margin-top':30})
-    ], className='container')
+    ], className='container', style={'margin-left':30}),
 ])
 
 
