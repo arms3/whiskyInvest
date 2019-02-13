@@ -11,4 +11,3 @@ dash-bootstrap-components
 plotly
 requests_futures
 scipy
-git+https://github.com/masdeseiscaracteres/dash-html-template.git
