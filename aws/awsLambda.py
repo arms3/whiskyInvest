@@ -154,13 +154,6 @@ def run_regression(df):
     pitches = pitches.join(linreg)
     pitches = pitches.dropna()
 
-    # pitches.slope = pitches.slope*dayseconds
-    # pitches['adjusted_slope'] = pitches.slope - (storage_fee / 365.25)
-    # pitches['spread_fee_adj'] = np.round(pitches.min_sell * (1 + market_fee), 2) - pitches.max_buy
-    # pitches['days_to_close_spread'] = pitches.spread_fee_adj / pitches.adjusted_slope
-    # pitches['fee_adjusted_purchase_cost'] = np.round(pitches.min_sell * (1 + market_fee), 2)
-    # pitches['annual_return'] = 100 * 365.25 * pitches.adjusted_slope / pitches.fee_adjusted_purchase_cost
-
     pitches['adjusted_slope'] = (dayseconds * pitches.slope) - (storage_fee / 365.25)
     pitches['spread_fee_adj'] = pitches.min_sell * (1 + market_fee) - pitches.max_buy
     pitches['days_to_close_spread'] = pitches.spread_fee_adj / pitches.adjusted_slope
@@ -183,6 +176,5 @@ if __name__ == '__main__':
     s3 = boto3.resource('s3')
     bucket = s3.Bucket('whisky-pricing')
     df = get_hourly()
-    print(df.head())
     pitches = run_regression(df)
     print(pitches.head(3))
