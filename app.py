@@ -195,7 +195,7 @@ contact_card = dbc.Card([
     dbc.Row([
         dbc.Col(dbc.CardImg(src=app.get_asset_url('mug.jpg'), style={'max-width': '120px'}), width=3),
         dbc.Col([
-            dbc.Row(['email: ', dbc.CardLink('angus.sinclair@mg.thedataincubator.com', href='mailto:angus.sinclair@mg.thedataincubator.com')]),
+            dbc.Row(['email: ', dbc.CardLink('angus.sinclair@mg.thedataincubator.com', href='mailto:sinclair.angus@gmail.com')]),
             dbc.Row(['git: ', dbc.CardLink('github.com/arms3/whiskyInvest', href='https://github.com/arms3/whiskyInvest')]),
             dbc.Row(['app: ', dbc.CardLink('whisky-invest.herokuapp.com', href='https://whisky-invest.herokuapp.com')]),
             dbc.Row(['about me: ', html.P('Drinker of good and bad whisky', className='text-primary')]),
@@ -361,11 +361,12 @@ page_1_layout = html.Div([
                     # Left chart
                     html.Div([html.H3('Predicted Returns', style={'display':'inline-block','margin-bottom':'0px'})],
                              className='card-header'),
+
                     html.Div([
 
                         # Distillery picker
-                        html.Div([
-                            html.Div([
+                        dbc.Row([
+                            dbc.Col([
                                 dcc.Dropdown(
                                     id='distillery-dropdown',
                                     options=pitches[['formattedDistillery', 'distillery']].drop_duplicates() \
@@ -373,18 +374,18 @@ page_1_layout = html.Div([
                                         orient='rows'),
                                     multi=True,
                                 ),
-                            ], className='col-lg-9', style={'padding-left':'0px'}),
+                            ], width=8, style={'padding-left':'0px'}),
 
                             # Radio items
-                            html.Div([
+                            dbc.Col([
                                 dcc.RadioItems(
                                     id='radio-high-correlation',
                                     options=[{'label':'All data','value':1},{'label':'High R Value','value':2}],
                                     value=2,
                                     labelStyle={'display': 'inline-block', 'padding':'2px'},
                                 ),
-                            ], className='float-lg-right'),
-                        ], className='row', style={'margin':'5px'}),
+                            ], width=4),
+                        ], style={'margin':'5px'}),
 
                         # Malt picker
                         html.Div([
