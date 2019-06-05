@@ -183,7 +183,7 @@ Footer = html.Footer([
             html.Ul([
                 html.Li(html.A('Back to top',href='#top'),className='float-lg-right'),
             ],className='list-unstyled'),
-            dcc.Markdown('''Created by [Angus Sinclair](https://github.com/arms3)  
+            dcc.Markdown('''Created by [Angus Sinclair](https://github.com/arms3)
 Icons made by [Freepik](https://www.freepik.com/) from [www.flaticon.com](https://www.flaticon.com/) is licensed by
 [CC 3.0 BY](http://creativecommons.org/licenses/by/3.0/)'''),
         ],className='col-lg-12'),
@@ -195,7 +195,7 @@ contact_card = dbc.Card([
     dbc.Row([
         dbc.Col(dbc.CardImg(src=app.get_asset_url('mug.jpg'), style={'max-width': '120px'}), width=3),
         dbc.Col([
-            dbc.Row(['email: ', dbc.CardLink('angus.sinclair@mg.thedataincubator.com', href='mailto:sinclair.angus@gmail.com')]),
+            dbc.Row(['email: ', dbc.CardLink('sinclair.angus@gmail.com', href='mailto:sinclair.angus@gmail.com')]),
             dbc.Row(['git: ', dbc.CardLink('github.com/arms3/whiskyInvest', href='https://github.com/arms3/whiskyInvest')]),
             dbc.Row(['app: ', dbc.CardLink('whisky-invest.herokuapp.com', href='https://whisky-invest.herokuapp.com')]),
             dbc.Row(['about me: ', html.P('Drinker of good and bad whisky', className='text-primary')]),
@@ -238,7 +238,7 @@ summary_table_layout = html.Div([
             dbc.Row([
                 dbc.Col([
                     dbc.Jumbotron([
-                        html.H2('What is this website telling me?'),
+                        html.H2('What is this website for?'),
                         html.P(dcc.Markdown('This website helps you to pick the top performing whiskies on [whiskyinvestdirect.com](https://www.whiskyinvestdirect.com/).'),),
                         html.Hr(className="my-2"),
                         html.P("The performance of your investments depends on the strategy you use to buy and sell "
