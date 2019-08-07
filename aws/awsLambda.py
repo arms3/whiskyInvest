@@ -115,7 +115,7 @@ def int2dt(array):
 
 
 def run_regression(df):
-    lr = OutlierLinearRegression(0.5, SplineRegressor(smooth_factor=11, order=1))
+    lr = OutlierLinearRegression(0.5, SplineRegressor(smooth_factor=None, order=1))
     linreg = {}
     preds = []
     print('Running regression...')
