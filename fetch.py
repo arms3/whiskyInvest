@@ -51,7 +51,7 @@ def get_pitches():
     pitch_table_cols = ['barrelTypeCode', 'bondQuarter', 'bondYear',
        'categoryName', 'considerationCurrency', 'distillery',
        'securityId', 'size', 'soldOut']
-    pitch_table = pitches[pitch_table_cols]
+    pitch_table = pitches[pitch_table_cols].copy()
 
     # Clean up and create whisky_type
     pitch_table['formattedDistillery'] = pitch_table['distillery'].apply(lambda x: x.lower().replace("_", '-'))

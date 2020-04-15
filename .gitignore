@@ -12,3 +12,4 @@ __pycache__/
 crossfilter\.py
 
 other/
+.vscode/launch.json
