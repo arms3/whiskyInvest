@@ -26,6 +26,8 @@ app = dash.Dash(__name__, server=server,
                 external_stylesheets=external_stylesheets)
 app.config.suppress_callback_exceptions = True
 
+R_VALUE = 0.99
+
 # Default template to load. Can customize favicon
 app.index_string = '''
 <!DOCTYPE html>
@@ -41,6 +43,7 @@ app.index_string = '''
         <footer>
             {%config%}
             {%scripts%}
+            {%renderer%}
         </footer>
     </body>
 </html>
@@ -89,9 +92,18 @@ pitches.formattedDistillery = pitches.formattedDistillery.map(format_distill)
 pitches['formatted_whisky'] = pitches.whisky_type.map(format_whisky_type)
 
 # Format summary table
-table = pitches[['formatted_whisky','days_to_close_spread','annual_return','r_value']]\
-                .query('r_value > 0.99').sort_values('annual_return',ascending=False)[:10].copy()
+### Adjust rvalue down dynamically to handle low confidence models
+table_len=0
+while table_len < 10:
+    table = pitches[['formatted_whisky','days_to_close_spread','annual_return','r_value']]\
+                    .query('r_value > '+ str(R_VALUE)).sort_values('annual_return',ascending=False)[:10].copy()
+    table_len=len(table)
+    if table_len < 10:
+        R_VALUE -= 0.01
+    if R_VALUE == 0:
+        break
 table['owned'] = False
+# table = table.replace({'owned':{True:'✓',False:'✗'}})
 table.columns = ['Whisky', 'Days to Close Bid Ask Spread', 'Annual Return, %', 'Confidence (R Value)', 'Own?']
 
 
@@ -251,7 +263,7 @@ summary_table_layout = html.Div([
             ]),
             dbc.Col([
                 html.H2("Top performing whiskies"),
-                html.Div([dbc.Table.from_dataframe(table, dark=False, responsive='md', hover=True,
+                html.Div([dbc.Table.from_dataframe(table.replace({'Own?':{True:'✓',False:'✗'}}), dark=False, responsive='md', hover=True,
                                                    float_format='.2f', size='sm')],id='summary-table'),
             ]),
             dbc.Col([
@@ -297,7 +309,7 @@ def fetch_intermediate(value):
     # single fetch call for both table and chart
     global pitches
     pitches['owned'] = False
-    table = pitches.query('r_value > 0.99').sort_values('annual_return',ascending=False)[:10]
+    table = pitches.query('r_value > ' + str(R_VALUE)).sort_values('annual_return',ascending=False)[:10]
     if value == '' or value is None:
         return table.to_json(orient='split')
 
@@ -316,7 +328,7 @@ def fetch_intermediate(value):
 )
 def update_table(json):
     if json is None:
-        return dbc.Table.from_dataframe(table, dark=False, responsive='md', hover=True, float_format='.2f', size='sm')
+        return dbc.Table.from_dataframe(table.replace({'Own?':{True:'✓',False:'✗'}}), dark=False, responsive='md', hover=True, float_format='.2f', size='sm')
     df = pd.read_json(json, orient='split')
     df = df[['formatted_whisky', 'days_to_close_spread', 'annual_return', 'r_value', 'owned']]
     df['annual_return'] = df['annual_return'].map('{:.1f}%'.format)
@@ -392,7 +404,7 @@ page_1_layout = html.Div([
                             dcc.Checklist(
                                 id='grain-malt-chooser',
                                 options=[{'label':i,'value':i} for i in ['Single Malt','Grain']],
-                                value   =['Single Malt','Grain'],
+                                value  =['Single Malt','Grain'],
                                 labelStyle={'display': 'inline-block', 'margin': '5px'},),
                         ], className='row', style={'margin':'5px'}),
 
@@ -452,7 +464,7 @@ def update_title(hoverData):
 @app.callback(
     Output('whisky-return-graph', 'figure'),
     [Input('distillery-dropdown', 'value'), Input('radio-high-correlation', 'value'),
-     Input('grain-malt-chooser', 'values'),] #Input('radio-strategy', 'value')]
+     Input('grain-malt-chooser', 'value'),] #Input('radio-strategy', 'value')]
 )
 def update_pitches(distilleries, radio, malt_grain,): #strategy):
     # Check we have some distilleries selected otherwise show all
@@ -464,7 +476,7 @@ def update_pitches(distilleries, radio, malt_grain,): #strategy):
         dff = pitches[pitches['distillery'].isin(distilleries)]
 
     if radio == 2:
-        dff = dff[dff.r_value > 0.95]
+        dff = dff[dff.r_value > R_VALUE]
     else:
        pass
 

@@ -13,3 +13,4 @@ crossfilter\.py
 
 other/
 .vscode/launch.json
+app_tests.py
