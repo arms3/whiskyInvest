@@ -392,7 +392,7 @@ page_1_layout = html.Div([
                             dcc.Checklist(
                                 id='grain-malt-chooser',
                                 options=[{'label':i,'value':i} for i in ['Single Malt','Grain']],
-                                values=['Single Malt','Grain'],
+                                value   =['Single Malt','Grain'],
                                 labelStyle={'display': 'inline-block', 'margin': '5px'},),
                         ], className='row', style={'margin':'5px'}),
 
