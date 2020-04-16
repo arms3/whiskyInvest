@@ -12,5 +12,5 @@ __pycache__/
 crossfilter\.py
 
 other/
-.vscode/launch.json
+.vscode/
 app_tests.py
