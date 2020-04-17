@@ -159,7 +159,7 @@ def regroup_to_daily(df):
     # Regroup to daily
     print('Regrouping daily pricing...')
     df.groupby('pitchId').resample('D')[['min_sell', 'max_buy', 'predict']].mean()
-    return df
+    return df.copy()
 
 def calculate_returns(df, linreg):
     # Fees
