@@ -149,7 +149,7 @@ def best_returns_bar():
             text=table['Annual Return, %'],
             textposition="inside",
             textangle=0,
-            texttemplate = "%{text:.2f}",
+            texttemplate = "%{text:.1f}%",
             hoverinfo="x+name",
             name='Not Owned', ),
         go.Bar(
@@ -158,7 +158,7 @@ def best_returns_bar():
             text=table['Annual Return, %'],
             textposition="inside",
             textangle=0,
-            texttemplate = "%{text:.2f}",
+            texttemplate = "%{text:.1f}%",
             hoverinfo="x+name",
             name='Owned',),
     ]
