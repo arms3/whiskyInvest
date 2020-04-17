@@ -198,24 +198,20 @@ def pitchcache(s3):
     return pd.read_csv(s3.open('whisky-pricing/pitch_models.csv', mode='rb'))
 
 def get_from_s3():
-    print("here")
     # Uses default config from environment variables
     s3 = S3FileSystem(anon=False)
     all_whisky = alls3cache(s3)
     analysed_pitches = pitchcache(s3)
     pitches = get_pitches()
-    print("got pitches")
 
     pitches = pitches.set_index('pitchId')
     analysed_pitches = analysed_pitches.set_index('pitchId')
     pitches = pitches.join(analysed_pitches, how='inner') # Ignores missing pitches as get_pitches filters out GBP
-    print("joined")
     # Clear old returns calculations and recalculate
     pitches.drop(['max_buy', 'min_sell', 'spread_fee_adj','days_to_close_spread', 'fee_adjusted_purchase_cost',
                   'annual_return', 'time', 'predict'], axis=1, inplace=True)
     # pitches.slope = pitches.slope*24 * 3600 * 1e9 # This must be commented
     pitches = calc_returns(pitches)
-    print("calculated returns")
     return pitches, all_whisky
 
 

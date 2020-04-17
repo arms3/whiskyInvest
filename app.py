@@ -149,7 +149,7 @@ def best_returns_bar():
             text=table['Annual Return, %'],
             textposition="inside",
             textangle=0,
-            texttemplate = "%{text:.1f}%",
+            # texttemplate = "%{text:.1f}%",
             hoverinfo="x+name",
             name='Not Owned', ),
         go.Bar(
@@ -158,7 +158,7 @@ def best_returns_bar():
             text=table['Annual Return, %'],
             textposition="inside",
             textangle=0,
-            texttemplate = "%{text:.1f}%",
+            # texttemplate = "%{text:.1f}%",
             hoverinfo="x+name",
             name='Owned',),
     ]
@@ -539,4 +539,4 @@ def create_time_series(dff, axis_type, title):
 
 
 if __name__ == '__main__':
-    app.server.run(debug=True, threaded=True)
+    app.server.run(debug=False, threaded=True)
