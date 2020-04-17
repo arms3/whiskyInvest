@@ -14,3 +14,4 @@ crossfilter\.py
 other/
 .vscode/
 app_tests.py
+aws/whiskyConsolidateLambda.zip

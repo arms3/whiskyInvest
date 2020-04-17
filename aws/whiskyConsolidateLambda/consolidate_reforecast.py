@@ -1,70 +1,19 @@
 #!/usr/bin/env python
+import os
 import gc
-import s3fs
+import boto3
+import datetime
 import numpy as np
 import pandas as pd
 from dateutil import parser
-from scipy.interpolate import UnivariateSpline
-from sklearn.base import BaseEstimator, RegressorMixin
-from sklearn.linear_model import LinearRegression
-
-# Initialize S3 connection
-s3 = s3fs.S3FileSystem(anon=False)
-
-class OutlierLinearRegression(BaseEstimator, RegressorMixin):
-    def __init__(self, outlierpct, reg=LinearRegression()):
-        self.outlierpct = outlierpct
-        self.reg = reg
-
-    def fit(self, X, y):
-        reg = self.reg
-        reg.fit(X, y)
-        errors = np.abs(y - reg.predict(X))
-        number_to_remove = int(self.outlierpct * len(X))
-        try:
-            keepidx = np.argsort(errors)[:-number_to_remove].values
-        except:
-            keepidx = np.argsort(errors)[:-number_to_remove]
-        keepidx.sort()
-        X_, y_ = X[keepidx], y[keepidx]
-        reg = self.reg
-        self.reg = reg.fit(X_, y_)
-
-        # Return coef and intercept features
-        self.coef_ = self.reg.coef_
-        self.intercept_ = self.reg.intercept_
-        return self
-
-    def predict(self, X, y=None):
-        return self.reg.predict(X)
-
-    def score(self, X, y):
-        return self.reg.score(X, y)
+from s3fs import S3FileSystem
+from outlier_spline import OutlierLinearRegression, SplineRegressor
 
 
-class SplineRegressor(BaseEstimator, RegressorMixin):
-    def __init__(self, order=2, smooth_factor = None):
-        self.k = order
-        self.s = smooth_factor
-
-    def _spline_tangent(self, spl, x0):
-        d = spl.derivatives(x0)
-        self.coef_ = d[1] *1.0
-        self.intercept_ = np.sum(d[0] - (d[1] * x0))
-
-        def pred_func(x):
-            return d[1] * (x - x0) + d[0]
-        return pred_func
-
-    def fit(self, X, y):
-        self.spl = UnivariateSpline(X, y, k=self.k, s=self.s)
-        self.maxx = max(X)
-        self.future = self._spline_tangent(self.spl, self.maxx)
-        return self
-
-    def predict(self, X, y=None):
-        in_train = X < self.maxx
-        return np.concatenate([self.spl(X[in_train]), self.future(X[~in_train])])
+def get_utc_days(format='%Y-%m-%d'):
+    utc = datetime.datetime.utcnow()
+    yesterday = utc.date() - datetime.timedelta(1)
+    return utc.strftime(format), yesterday.strftime(format)
 
 
 def index2int(index):
@@ -75,6 +24,44 @@ def index2int(index):
 def int2dt(array):
     """Helper function to convert int64 to timeseries[ns]"""
     return pd.to_datetime(pd.Series(array.squeeze(), name='timestamp'),utc=True)
+
+
+def pandas_s3_glob(globstring):
+    '''Imports and reads all csv files in s3 folder'''
+    from s3fs import S3FileSystem
+    s3 = S3FileSystem(anon=False)
+    file_list = s3.glob(globstring)
+    if len(file_list) == 0:
+        print("No files to consolidate")
+        return
+    return pd.concat([pd.read_csv('s3://'+f) for f in file_list],axis=0, ignore_index=True)
+
+
+def consolidate_s3_csv(s3_folder):
+    df = pandas_s3_glob('s3://'+s3_folder+'/*.csv')
+    if df is None:
+        return
+    subfolder = s3_folder.split('/')[-1] # Get subfolder e.g. date here
+    root = '/'.join(s3_folder.split('/')[:-1]) # Rejoin all other tokens to get root folder
+    df.to_csv('s3://'+root+'/'+subfolder+'.csv', index=False) # Write consolidated csv back out
+
+
+def list_s3_subfolders(s3_folder='whisky-pricing'):
+    from s3fs import S3FileSystem
+    s3 = S3FileSystem(anon=False)
+    return s3.glob(f's3://{s3_folder}/*[0-9]')
+
+
+def remove_old_s3_date_subfolders(bucket='whisky-pricing', days_old=2):
+    import datetime
+    from s3fs import S3FileSystem
+    s3 = S3FileSystem(anon=False)
+    oldest_date = datetime.datetime.utcnow() - datetime.timedelta(days_old)
+    subfolders = [x.split('/')[-1] for x in list_s3_subfolders(bucket)]
+    for subf in subfolders:
+        if datetime.datetime.strptime(subf, '%Y-%m-%d') < oldest_date:
+            print(f'Removing subfolder: s3://{bucket}/{subf}/...')
+            s3.rm(f's3://{bucket}/{subf}', recursive=True)
 
 
 def regroup_df_hourly(df, time_column='time'):
@@ -141,6 +128,11 @@ def get_hourly():
 
 
 def run_regression(df):
+    df.reset_index(inplace=True)
+    df.drop('index',axis=1,inplace=True,errors='ignore')
+    df.drop('predict',axis=1,inplace=True,errors='ignore')
+    df.set_index('time',inplace=True)
+
     lr = OutlierLinearRegression(0.5, SplineRegressor(smooth_factor=None, order=1))
     linreg = {}
     preds = []
@@ -192,23 +184,43 @@ def calculate_returns(df, linreg):
     return pitches
 
 def main():
+    # Initialize S3 connection
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket('whisky-pricing')
+
+    # Consolidate data from yesterday
+    # Assume we're running just after UTC midnight
+    print("Consolidating yesterday's files...")
+    _, yd = get_utc_days()
+    consolidate_s3_csv(f'whisky-pricing/{yd}')
+
+    # Clean up old data removing old folders
+    print("Cleaning up old folders...")
+    remove_old_s3_date_subfolders(bucket='whisky-pricing', days_old=5)
+
     print('Reticulating splines...')
     hourly, continueProcessing = get_hourly()
     if continueProcessing:
         # Process hourly predictions and upload to S3
         hourly_pred, linreg = run_regression(hourly)
-        hourly_pred.to_csv('spreads.csv')
-        s3.put('spreads.csv','s3://whisky-pricing/spreads.csv')
-        
+        hourly_pred.to_csv('s3://whisky-pricing/spreads.csv')
+        # hourly_pred.to_csv('/tmp/spreads.csv')
+        # bucket.upload_file('/tmp/spreads.csv','spreads.csv')
+        # os.remove('/tmp/spreads.csv')
+
         # Process daily data and upload to S3
         daily = regroup_to_daily(hourly_pred)
-        daily.to_csv('mean_daily_spread.csv')
-        s3.put('mean_daily_spread.csv', 's3://whisky-pricing/mean_daily_spread.csv')
+        daily.to_csv('s3://whisky-pricing/mean_daily_spread.csv')
+        # daily.to_csv('/tmp/mean_daily_spread.csv')
+        # bucket.upload_file('/tmp/mean_daily_spread.csv', 'mean_daily_spread.csv')
+        # os.remove('/tmp/mean_daily_spread.csv')
 
-        # Caluclate returns and upload to S3
+        # Calculate returns and upload to S3
         pitches = calculate_returns(daily, linreg)
-        pitches.to_csv('pitch_models.csv')
-        s3.put('pitch_models.csv', 's3://whisky-pricing/pitch_models.csv')
+        pitches.to_csv('s3://whisky-pricing/pitch_models.csv')
+        # pitches.to_csv('/tmp/pitch_models.csv')
+        # bucket.upload_file('/tmp/pitch_models.csv', 'pitch_models.csv')
+        # os.remove('/tmp/pitch_models.csv')
         print(pitches.head(3))
 
 

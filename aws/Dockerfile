@@ -17,7 +17,7 @@ RUN wget \
 RUN conda --version
 
 # Install dependencies
-RUN conda install -y boto3 pandas dask scipy s3fs numpy scikit-learn
+RUN conda install -y pandas scipy s3fs numpy scikit-learn
 
 # Finally run script
 # RUN python /root/awsLambda.py
