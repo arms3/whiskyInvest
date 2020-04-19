@@ -6,7 +6,6 @@ import re
 import ast
 import os
 from scipy import stats
-from s3fs import S3FileSystem
 # from flask.ext.cache import Cache
 
 
@@ -18,7 +17,7 @@ def checkpoint(fname, df_read_args={}):
     """Function decorator to checkpoint functions that return dataframes."""
     def checkpoint_decorator(func):
         def func_wrapper(*args, **kwargs):
-            cache = 'cache\\' + fname
+            cache = "/tmp/" + fname
             if os.path.isfile(cache):
                 # TODO: Add timeout even if file exists - check file update time or insert into database
                 print('Cache exists, returning cached data')
@@ -94,7 +93,7 @@ def scrape_all_charts(pitches):
     """Fetches all chart data from a list of pitches."""
     links = []
     whisky_types = []
-    for index, whisky in pitches.iterrows():
+    for _, whisky in pitches.iterrows():
         chart_link = 'https://www.whiskyinvestdirect.com/{}/{}/{}/{}/chart.do'.format(whisky.formattedDistillery,
                                                                                       whisky.bondYear,
                                                                                       whisky.bondQuarter,
@@ -190,20 +189,23 @@ def model_prices(pitches, time):
     return pitches.intercept + (np.int64(time.value) * pitches.slope)
 
 @checkpoint('mean_daily_spread.csv')
-def alls3cache(s3):
-    return pd.read_csv(s3.open('whisky-pricing/mean_daily_spread.csv', mode='rb'))
+def alls3cache():
+    print("Reading mean daily spread from S3...")
+    return pd.read_csv('s3://whisky-pricing/mean_daily_spread.csv')
 
 @checkpoint('pitch_models.csv')
-def pitchcache(s3):
-    return pd.read_csv(s3.open('whisky-pricing/pitch_models.csv', mode='rb'))
+def pitchcache():
+    print("Reading pitch models from S3...")
+    return pd.read_csv('s3://whisky-pricing/pitch_models.csv')
 
 def get_from_s3():
+    print("Loading data...")
     # Uses default config from environment variables
-    s3 = S3FileSystem(anon=False)
-    all_whisky = alls3cache(s3)
-    analysed_pitches = pitchcache(s3)
+    analysed_pitches = pitchcache()
+    all_whisky = alls3cache()
     pitches = get_pitches()
 
+    print('Getting pitches...')
     pitches = pitches.set_index('pitchId')
     analysed_pitches = analysed_pitches.set_index('pitchId')
     pitches = pitches.join(analysed_pitches, how='inner') # Ignores missing pitches as get_pitches filters out GBP
@@ -211,6 +213,7 @@ def get_from_s3():
     pitches.drop(['max_buy', 'min_sell', 'spread_fee_adj','days_to_close_spread', 'fee_adjusted_purchase_cost',
                   'annual_return', 'time', 'predict'], axis=1, inplace=True)
     # pitches.slope = pitches.slope*24 * 3600 * 1e9 # This must be commented
+    print("Calculate returns...")
     pitches = calc_returns(pitches)
     return pitches, all_whisky
 

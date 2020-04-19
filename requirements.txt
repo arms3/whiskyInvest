@@ -3,12 +3,10 @@ requests
 flask
 pandas
 numpy
-s3fs
 dash
 dash-renderer
 dash-core-components
 dash-html-components
 dash-bootstrap-components
-plotly
 requests_futures
 scipy
