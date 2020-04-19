@@ -1,6 +1,7 @@
 gunicorn
 requests
 flask
+s3fs
 pandas
 numpy
 dash
