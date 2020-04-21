@@ -153,7 +153,7 @@ def run_regression(df):
     preds = pd.concat(preds, axis=0).reset_index()
     df = df.reset_index().merge(preds, on=['pitchId','time']).reset_index().set_index('time')
     df.drop('index',axis=1, inplace=True) # Remove the rangindex artifact created in merge
-    return df, linreg
+    return df.copy(), linreg
 
 def regroup_to_daily(df):
     # Regroup to daily
@@ -184,10 +184,6 @@ def calculate_returns(df, linreg):
     return pitches
 
 def main():
-    # Initialize S3 connection
-    s3 = boto3.resource('s3')
-    bucket = s3.Bucket('whisky-pricing')
-
     # Consolidate data from yesterday
     # Assume we're running just after UTC midnight
     print("Consolidating yesterday's files...")
@@ -200,27 +196,22 @@ def main():
 
     print('Reticulating splines...')
     hourly, continueProcessing = get_hourly()
+    print("Dataframe shape: ", hourly.shape, ", columns: ", hourly.columns)
     if continueProcessing:
         # Process hourly predictions and upload to S3
         hourly_pred, linreg = run_regression(hourly)
+        print("Dataframe shape: ", hourly_pred.shape, ", columns: ", hourly_pred.columns)
         hourly_pred.to_csv('s3://whisky-pricing/spreads.csv')
-        # hourly_pred.to_csv('/tmp/spreads.csv')
-        # bucket.upload_file('/tmp/spreads.csv','spreads.csv')
-        # os.remove('/tmp/spreads.csv')
 
         # Process daily data and upload to S3
         daily = regroup_to_daily(hourly_pred)
+        print("Dataframe shape: ", daily.shape, ", columns: ", daily.columns)
         daily.to_csv('s3://whisky-pricing/mean_daily_spread.csv')
-        # daily.to_csv('/tmp/mean_daily_spread.csv')
-        # bucket.upload_file('/tmp/mean_daily_spread.csv', 'mean_daily_spread.csv')
-        # os.remove('/tmp/mean_daily_spread.csv')
 
         # Calculate returns and upload to S3
         pitches = calculate_returns(daily, linreg)
+        print("Dataframe shape: ", pitches.shape, ", columns: ", pitches.columns)
         pitches.to_csv('s3://whisky-pricing/pitch_models.csv')
-        # pitches.to_csv('/tmp/pitch_models.csv')
-        # bucket.upload_file('/tmp/pitch_models.csv', 'pitch_models.csv')
-        # os.remove('/tmp/pitch_models.csv')
         print(pitches.head(3))
 
 
