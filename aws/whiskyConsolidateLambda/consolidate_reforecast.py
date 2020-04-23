@@ -158,8 +158,8 @@ def run_regression(df):
 def regroup_to_daily(df):
     # Regroup to daily
     print('Regrouping daily pricing...')
-    df.groupby('pitchId').resample('D')[['min_sell', 'max_buy', 'predict']].mean()
-    return df.copy()
+    grouped = df.groupby('pitchId').resample('D')[['min_sell', 'max_buy', 'predict']].mean()
+    return grouped
 
 def calculate_returns(df, linreg):
     # Fees
@@ -183,6 +183,9 @@ def calculate_returns(df, linreg):
     pitches['annual_return'] = -100 + 100 * pitches.fee_adjusted_sell_cost / pitches.fee_adjusted_purchase_cost
     return pitches
 
+def print_shape_cols(df):
+    print("Dataframe shape: ", df.shape, ", columns: ", df.columns)
+
 def main():
     # Consolidate data from yesterday
     # Assume we're running just after UTC midnight
@@ -195,22 +198,22 @@ def main():
     remove_old_s3_date_subfolders(bucket='whisky-pricing', days_old=5)
 
     print('Reticulating splines...')
-    hourly, continueProcessing = get_hourly()
-    print("Dataframe shape: ", hourly.shape, ", columns: ", hourly.columns)
-    if continueProcessing:
+    hourly, continue_processing = get_hourly()
+    print_shape_cols(hourly)
+    if continue_processing:
         # Process hourly predictions and upload to S3
         hourly_pred, linreg = run_regression(hourly)
-        print("Dataframe shape: ", hourly_pred.shape, ", columns: ", hourly_pred.columns)
+        print_shape_cols(hourly_pred)
         hourly_pred.to_csv('s3://whisky-pricing/spreads.csv')
 
         # Process daily data and upload to S3
         daily = regroup_to_daily(hourly_pred)
-        print("Dataframe shape: ", daily.shape, ", columns: ", daily.columns)
+        print_shape_cols(daily)
         daily.to_csv('s3://whisky-pricing/mean_daily_spread.csv')
 
         # Calculate returns and upload to S3
         pitches = calculate_returns(daily, linreg)
-        print("Dataframe shape: ", pitches.shape, ", columns: ", pitches.columns)
+        print_shape_cols(pitches)
         pitches.to_csv('s3://whisky-pricing/pitch_models.csv')
         print(pitches.head(3))
 
