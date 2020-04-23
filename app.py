@@ -121,7 +121,7 @@ def create_pitch(dff, strategy=None):
         ycol = 'annual_return'
         ytitle = 'Annual Return, %'
 
-    for name, grp in dff.groupby('distillery'):
+    for _, grp in dff.groupby('distillery'):
         data.append(
             dict(x=grp[xcol], y=grp[ycol], text=grp.whisky_type.map(format_whisky_type),
                  mode='markers', name=grp.formattedDistillery.iloc[0], customdata=grp.index,
@@ -481,13 +481,9 @@ def update_pitches(distilleries, radio, malt_grain,): #strategy):
 
     if radio == 2:
         dff = dff[dff.r_value > R_VALUE]
-    else:
-       pass
 
     malt_grain_format = {'Grain':'GRAIN','Single Malt':'SINGLE_MALT'}
-    if len(malt_grain) == 0:
-        pass
-    else:
+    if len(malt_grain) != 0:
         malt_grain = [malt_grain_format[x] for x in malt_grain]
         dff = dff[dff.categoryName.isin(malt_grain)]
 

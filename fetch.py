@@ -6,11 +6,6 @@ import re
 import ast
 import os
 from scipy import stats
-# from flask.ext.cache import Cache
-
-
-# Setup flask cache
-# cache = Cache(config={'CACHE_TYPE': 'simple'})
 
 
 def checkpoint(fname, df_read_args={}):
@@ -227,8 +222,4 @@ def load_all_data():
 
 
 if __name__ == '__main__':
-    # ptch = get_pitches()
-    # df = scrape_all_charts(ptch)
-    # ptch2 = analyse_prices(ptch, df)
-    # print(ptch2.head())
     get_from_s3()
