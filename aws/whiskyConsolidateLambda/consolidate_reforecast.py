@@ -85,7 +85,7 @@ def get_hourly():
     # Load up full data
     print("Reading existing hourly spread data...")
     df = pd.read_csv('s3://whisky-pricing/spreads.csv', parse_dates=['time'])
-   
+
    # Get latest imported date
     print("Importing non consolidated dates...")
     last_date = pd.to_datetime(df.time.max()).date()
@@ -105,7 +105,7 @@ def get_hourly():
 
     if len(missing_days) == 0:
         return df, False # Return flag so that further processing can be skipped
-    
+
     # Concat all the missing days
     missing = pd.concat(missing_days,axis=0)
 
@@ -132,6 +132,11 @@ def run_regression(df):
     df.drop('index',axis=1,inplace=True,errors='ignore')
     df.drop('predict',axis=1,inplace=True,errors='ignore')
     df.set_index('time',inplace=True)
+
+    # Regression on last N months only
+    now = pd.to_datetime('now')
+    lastN = now - pd.DateOffset(months=8)
+    df = df.query("@now >= index >= @lastN")
 
     lr = OutlierLinearRegression(0.5, SplineRegressor(smooth_factor=None, order=1))
     linreg = {}
