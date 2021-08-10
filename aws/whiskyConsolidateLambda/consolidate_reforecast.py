@@ -134,7 +134,7 @@ def run_regression(df):
     df.set_index('time',inplace=True)
 
     # Regression on last N months only
-    now = pd.to_datetime('now')
+    now = pd.to_datetime('now').tz_localize('UTC')
     lastN = now - pd.DateOffset(months=8)
     df = df.query("@now >= index >= @lastN")
 
