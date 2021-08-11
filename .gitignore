@@ -15,3 +15,7 @@ other/
 .vscode/
 app_tests.py
 aws/whiskyConsolidateLambda.zip
+
+.ipynb_checkpoints/
+
+aws/whiskyConsolidateLambda/New Price Prediction Model.ipynb

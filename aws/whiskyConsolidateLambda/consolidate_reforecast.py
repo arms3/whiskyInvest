@@ -1,13 +1,9 @@
 #!/usr/bin/env python
-import os
-import gc
-import boto3
 import datetime
 import numpy as np
 import pandas as pd
 from dateutil import parser
-from s3fs import S3FileSystem
-from outlier_spline import OutlierLinearRegression, SplineRegressor
+from linear_segment import SegmentedLinearRegressor
 
 
 def get_utc_days(format='%Y-%m-%d'):
@@ -18,7 +14,7 @@ def get_utc_days(format='%Y-%m-%d'):
 
 def index2int(index):
     """Helper function to convert timeindexes to ints"""
-    return index.astype(np.int64).values.reshape(-1,1)
+    return index.view(np.int64).reshape(-1,1)
 
 
 def int2dt(array):
@@ -88,22 +84,30 @@ def get_hourly():
 
    # Get latest imported date
     print("Importing non consolidated dates...")
-    last_date = pd.to_datetime(df.time.max()).date()
-    today = pd.to_datetime('today').date()
+
+    # Save last N months only
+    now = pd.to_datetime('now').tz_localize('UTC')
+    lastN = now - pd.DateOffset(months=12)
+    df = df.query("time >= @lastN")
 
     # Get missing days
     missing_days = []
-    delta = today - last_date
+    delta = now - lastN
+    unique_days = df.time.dt.date.unique()
     for i in range(delta.days):
-        day = last_date + pd.Timedelta(i+1, unit='D')
-        try:
-            df_day = pd.read_csv(f's3://whisky-pricing/{day}.csv', parse_dates=False)
-            print(f'Imported day: {day}')
-            missing_days.append(df_day)
-        except:
-            print(f'Day not found: {day}')
+        day = (lastN + pd.Timedelta(i+1, unit='D')).date()
+        if day in unique_days:
+            print(f'{day} already imported.')
+        else:
+            try:
+                df_day = pd.read_csv(f's3://whisky-pricing/{day}.csv', parse_dates=False)
+                print(f'Imported day: {day}')
+                missing_days.append(df_day)
+            except:
+                print(f'Day not found: {day}')
 
     if len(missing_days) == 0:
+        print('No missing days to consolidate.')
         return df, False # Return flag so that further processing can be skipped
 
     # Concat all the missing days
@@ -124,21 +128,17 @@ def get_hourly():
     # Merge with existing data
     df = pd.concat([df,missing],axis=0)
     df.drop('predict',axis=1, inplace=True)
+    df.sort_values(by=['time'], inplace=True)
     return df, True # Return flag to continue processing
 
 
 def run_regression(df):
-    df.reset_index(inplace=True)
-    df.drop('index',axis=1,inplace=True,errors='ignore')
-    df.drop('predict',axis=1,inplace=True,errors='ignore')
-    df.set_index('time',inplace=True)
+    df = df.reset_index()
+    df = df.drop('index',axis=1,errors='ignore')
+    df = df.drop('predict',axis=1,errors='ignore')
+    df = df.set_index('time')
 
-    # Regression on last N months only
-    now = pd.to_datetime('now').tz_localize('UTC')
-    lastN = now - pd.DateOffset(months=8)
-    df = df.query("@now >= index >= @lastN")
-
-    lr = OutlierLinearRegression(0.5, SplineRegressor(smooth_factor=None, order=1))
+    lr = SegmentedLinearRegressor(n_seg=4, min_segment_length=200)
     linreg = {}
     preds = []
     print('Running regression...')
