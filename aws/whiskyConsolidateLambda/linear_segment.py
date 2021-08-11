@@ -6,7 +6,7 @@ import numpy as np
 
 class SegmentedLinearRegressor(BaseEstimator, RegressorMixin):
 
-    def __init__(self, n_seg=4, min_segment_length=200):
+    def __init__(self, n_seg=2, min_segment_length=300):
         self.m = min_segment_length
         self.n_seg = n_seg
         self.dtr = DecisionTreeRegressor(max_leaf_nodes=n_seg)
@@ -38,7 +38,7 @@ class SegmentedLinearRegressor(BaseEstimator, RegressorMixin):
             self.lr[-1].fit(X, y)
 
         # Return last coefficient and intercept features
-        self.coef_ = self.lr[-1].coef_
+        self.coef_ = self.lr[-1].coef_[0]
         self.intercept_ = self.lr[-1].intercept_
         return self
 

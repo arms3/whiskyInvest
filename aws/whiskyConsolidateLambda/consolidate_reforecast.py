@@ -138,7 +138,7 @@ def run_regression(df):
     df = df.drop('predict',axis=1,errors='ignore')
     df = df.set_index('time')
 
-    lr = SegmentedLinearRegressor(n_seg=4, min_segment_length=200)
+    lr = SegmentedLinearRegressor(n_seg=2, min_segment_length=300)
     linreg = {}
     preds = []
     print('Running regression...')
@@ -169,7 +169,7 @@ def regroup_to_daily(df):
 def calculate_returns(df, linreg):
     # Fees
     market_fee = 1.75 / 100.0  # % per transaction, rounded to nearest pence
-    storage_fee = 0.15  # pence per annum (charged monthly)
+    storage_fee = 0.15  # pence per annum per LPA (charged monthly)
     dayseconds = 24 * 3600 * 1e9  # nanoseconds in a day
 
     # Calculate returns
@@ -182,8 +182,10 @@ def calculate_returns(df, linreg):
     pitches['spread_fee_adj'] = pitches.min_sell * (1 + market_fee) - pitches.max_buy
     pitches['days_to_close_spread'] = pitches.spread_fee_adj / pitches.adjusted_slope
     pitches['fee_adjusted_purchase_cost'] = pitches.min_sell * (1 + market_fee)
+    # Get current model price assuming this is more accurate than current actual price then forecast
+    # out the book value by 1 yr factoring in the storage fees (adjusted slope)
     pitches['predicted1y'] = pitches.intercept + (pitches.time.astype(np.int64) * pitches.slope) \
-                             + (pitches.adjusted_slope * 365.25)  # Use model price here
+                             + (pitches.adjusted_slope * 365.25)
     pitches['fee_adjusted_sell_cost'] = pitches.predicted1y * (1 - market_fee)
     pitches['annual_return'] = -100 + 100 * pitches.fee_adjusted_sell_cost / pitches.fee_adjusted_purchase_cost
     return pitches
@@ -224,18 +226,21 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
-    # hourly = pd.read_csv('s3://whisky-pricing/spreads.csv', parse_dates=['time'])
-    # hourly_pred, linreg = run_regression(hourly)
-    # hourly_pred.to_csv('s3://whisky-pricing/spreads.csv')
+    debug = False
+    if not debug:
+        main()
+    else:
+        hourly = pd.read_csv('s3://whisky-pricing/spreads.csv', parse_dates=['time'])
+        hourly_pred, linreg = run_regression(hourly)
+        hourly_pred.to_csv('s3://whisky-pricing/spreads.csv')
 
-    # # Process daily data and upload to S3
-    # daily = regroup_to_daily(hourly_pred)
-    # print_shape_cols(daily)
-    # daily.to_csv('s3://whisky-pricing/mean_daily_spread.csv')
+        # Process daily data and upload to S3
+        daily = regroup_to_daily(hourly_pred)
+        print_shape_cols(daily)
+        daily.to_csv('s3://whisky-pricing/mean_daily_spread.csv')
 
-    # # Calculate returns and upload to S3
-    # pitches = calculate_returns(daily, linreg)
-    # print_shape_cols(pitches)
-    # pitches.to_csv('s3://whisky-pricing/pitch_models.csv')
-    # print(pitches.head(3))
+        # Calculate returns and upload to S3
+        pitches = calculate_returns(daily, linreg)
+        print_shape_cols(pitches)
+        pitches.to_csv('s3://whisky-pricing/pitch_models.csv')
+        print(pitches.head(3))
