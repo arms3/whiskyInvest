@@ -225,3 +225,17 @@ def main():
 
 if __name__ == '__main__':
     main()
+    # hourly = pd.read_csv('s3://whisky-pricing/spreads.csv', parse_dates=['time'])
+    # hourly_pred, linreg = run_regression(hourly)
+    # hourly_pred.to_csv('s3://whisky-pricing/spreads.csv')
+
+    # # Process daily data and upload to S3
+    # daily = regroup_to_daily(hourly_pred)
+    # print_shape_cols(daily)
+    # daily.to_csv('s3://whisky-pricing/mean_daily_spread.csv')
+
+    # # Calculate returns and upload to S3
+    # pitches = calculate_returns(daily, linreg)
+    # print_shape_cols(pitches)
+    # pitches.to_csv('s3://whisky-pricing/pitch_models.csv')
+    # print(pitches.head(3))

@@ -43,7 +43,7 @@ def getOrders(to_csv=True):
     updateTime = pd.Timestamp('now', tz='UTC')
     pricing['time'] = updateTime
     pricing = pricing.reset_index().set_index('time')
-    
+
     if to_csv:
         PRICINGFILE = Path('/tmp/'+td+'.csv')
         if PRICINGFILE.exists():

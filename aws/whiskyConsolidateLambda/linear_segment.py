@@ -23,12 +23,19 @@ class SegmentedLinearRegressor(BaseEstimator, RegressorMixin):
         unique = self.dys_dt[np.sort(idx)]
 
         # For each group of gradients add a linear regressor
+        at_least_one_regressor = False
         for dy in unique:
             msk = self.dys_dt == dy
             # Only add to our regressors if segment is long enough
             if np.sum(msk) >= self.m:
                 self.lr.append(LinearRegression())
                 self.lr[-1].fit(X[msk], y[msk])
+                at_least_one_regressor = True
+
+        # Fallback for small datasets - linear regression
+        if not at_least_one_regressor:
+            self.lr.append(LinearRegression())
+            self.lr[-1].fit(X, y)
 
         # Return last coefficient and intercept features
         self.coef_ = self.lr[-1].coef_
