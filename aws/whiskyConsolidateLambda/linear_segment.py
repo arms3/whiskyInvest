@@ -38,7 +38,7 @@ class SegmentedLinearRegressor(BaseEstimator, RegressorMixin):
             self.lr[-1].fit(X, y)
 
         # Return last coefficient and intercept features
-        self.coef_ = self.lr[-1].coef_
+        self.coef_ = self.lr[-1].coef_[0]
         self.intercept_ = self.lr[-1].intercept_
         return self
 
