@@ -138,7 +138,7 @@ def run_regression(df):
     df = df.drop('predict',axis=1,errors='ignore')
     df = df.set_index('time')
 
-    lr = SegmentedLinearRegressor(n_seg=2, min_segment_length=300)
+    lr = SegmentedLinearRegressor(n_seg=4, min_segment_length=280)
     linreg = {}
     preds = []
     print('Running regression...')
@@ -146,7 +146,7 @@ def run_regression(df):
         X = index2int(spread.max_buy.dropna().index)
         y = spread.max_buy.dropna().values
         lr.fit(X, y)
-        linreg[pitch] = {'intercept': lr.intercept_, 'slope': lr.coef_, 'r_value': lr.score(X, y)}
+        linreg[pitch] = {'intercept': lr.intercept_, 'slope': lr.coef_, 'r_value': lr.score(X, y, )}
         # Predict within timeseries (for plotting)
         preds.append(pd.DataFrame({'time': int2dt(X), 'predict': lr.predict(X), 'pitchId': np.full(len(X), pitch)})\
                      .set_index('pitchId'))

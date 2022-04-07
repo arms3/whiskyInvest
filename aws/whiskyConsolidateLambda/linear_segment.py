@@ -7,6 +7,7 @@ import numpy as np
 class SegmentedLinearRegressor(BaseEstimator, RegressorMixin):
 
     def __init__(self, n_seg=2, min_segment_length=300):
+        self.lr = []
         self.m = min_segment_length
         self.n_seg = n_seg
         self.dtr = DecisionTreeRegressor(max_leaf_nodes=n_seg)
@@ -18,12 +19,10 @@ class SegmentedLinearRegressor(BaseEstimator, RegressorMixin):
         self.dys_dt = self.dtr.predict(X).flatten()
 
         # Initialize and get sorted unique gradients
-        self.lr = []
         _, idx = np.unique(self.dys_dt, return_index=True)
         unique = self.dys_dt[np.sort(idx)]
 
         # For each group of gradients add a linear regressor
-        at_least_one_regressor = False
         for dy in unique:
             msk = self.dys_dt == dy
             # Only add to our regressors if segment is long enough
@@ -33,7 +32,7 @@ class SegmentedLinearRegressor(BaseEstimator, RegressorMixin):
                 at_least_one_regressor = True
 
         # Fallback for small datasets - linear regression
-        if not at_least_one_regressor:
+        if len(self.lr) < 1:
             self.lr.append(LinearRegression())
             self.lr[-1].fit(X, y)
 
@@ -48,4 +47,4 @@ class SegmentedLinearRegressor(BaseEstimator, RegressorMixin):
 
     def score(self, X, y):
         # Get score for latest segment
-        return self.lr[-1].score(X,y)
+        return self.lr[-1].score(X, y, )
