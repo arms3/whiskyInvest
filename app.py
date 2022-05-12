@@ -72,7 +72,9 @@ def display_page(pathname):
 
 # Formatting helpers
 def format_whisky_type(whisky_type):
-    m = {'BBF': 'First fill bourbon', 'BBR': 'Refill bourbon', 'HHR': 'Refill hogshead', 'SBR': 'Refill sherry butt', 'BRF':'Refill butt'}
+    m = {'BBF': 'First fill bourbon', 'BBR': 'Refill bourbon',
+         'HHR': 'Refill hogshead', 'SBR': 'Refill sherry butt',
+         'BRF':'Refill butt', 'SHR': 'Refill sherry hogshead'}
     processed = whisky_type.split('_')
     processed[0] = ' '.join([x[0].upper() + x[1:] for x in processed[0].split('-')])
     processed[-1] = m[processed[-1]]
