@@ -8,10 +8,11 @@ numpy
 scipy
 scikit-learn
 plotly
-dash==1.21.0
-dash-renderer
-dash-core-components
-dash-html-components
+dash<2
+dash-renderer<2
+dash-core-components<2
+dash-html-components<2
 dash-bootstrap-components<1
 werkzeug==2.0.3
 fsspec
+s3fs
