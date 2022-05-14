@@ -15,9 +15,6 @@ import numpy as np
 from fetch import get_from_s3, calc_returns
 pitches, all_whisky = get_from_s3()
 
-# TODO: use flask-cache to save calls to whisky site
-# https://pythonhosted.org/Flask-Cache/
-
 # Main app definition
 server = flask.Flask(__name__)
 external_stylesheets = ['https://stackpath.bootstrapcdn.com/bootswatch/4.2.1/lux/bootstrap.min.css',]
@@ -67,7 +64,7 @@ def display_page(pathname):
         return page_1_layout
     else:
         return page_1_layout
-    # You could also return a 404 "URL not found" page here
+    # Could also return a 404 "URL not found" page here
 
 
 # Formatting helpers
@@ -234,8 +231,8 @@ about_page_layout = html.Div([
                     html.P(dcc.Markdown(format_markdown('''
                     ## About this site
                     ##### Technologies
-                    - Webscraper for pricing deployed on [AWS Lightsail](https://aws.amazon.com/lightsail/)
-                    - Daily analysis (batch forecasting and data aggregation) deployed on [AWS Data pipeline](https://aws.amazon.com/datapipeline/)
+                    - Webscraper for pricing deployed on AWS Lambda
+                    - Daily analysis (batch forecasting and data aggregation) deployed on AWS Lambda
                     - Webapp deployed on [Heroku](heroku.com), using [Flask](http://flask.pocoo.org/) and [Dash by Plot.ly](https://plot.ly/products/dash/)
                     ##### Purpose
                     - Fetches pricing and provides recommended whisky investments for the Scotch whisky trading platform [whiskyinvestdirect.com](https://www.whiskyinvestdirect.com/)

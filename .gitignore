@@ -1,25 +1,15 @@
 
-cache/
-
+# General / python stuff
 __pycache__/
-
-\.idea/
-
-*.xlsx
-
-*.csv
-
-crossfilter\.py
-
-other/
 .vscode/
-app_tests.py
-aws/whiskyConsolidateLambda.zip
-
 .ipynb_checkpoints/
-
-aws/whiskyConsolidateLambda/New Price Prediction Model.ipynb
-
 .venv/
-
 env
+.env
+
+# Cached or test files
+*.xlsx
+*.csv
+*.zip
+*.ipynb
+cache/
