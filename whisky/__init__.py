@@ -12,7 +12,7 @@ print("in init")
 ############################
 # Import Utility Functions #
 ############################
-from utils import format_distill, format_whisky_type, best_returns_bar, create_time_series, create_pitch
+from whisky.utils import format_distill, format_whisky_type, best_returns_bar, create_time_series, create_pitch
 R_VALUE = 0.98
 
 
@@ -30,7 +30,7 @@ app.config.suppress_callback_exceptions = True
 ############################
 # Load up and analyse data #
 ############################
-from fetch import get_from_s3, calc_returns
+from whisky.fetch import get_from_s3, calc_returns
 pitches, all_whisky = get_from_s3()
 
 # Formatting of pitches
@@ -56,7 +56,7 @@ table.columns = ['Whisky', 'Days to Close Bid Ask Spread', 'Annual Return, %', '
 ##############
 # Load views #
 ##############
-import views
+import whisky.views
 
 
 #############################
