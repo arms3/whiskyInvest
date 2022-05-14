@@ -6,7 +6,6 @@ from random import randint
 import dash_bootstrap_components as dbc
 import numpy as np
 import os
-import __main__
 
 print("in init")
 
