@@ -68,13 +68,13 @@ import whisky.views
               [Input('url', 'pathname')])
 def display_page(pathname):
     if pathname == '/':
-        return views.summary_table_layout(table, pitches)
+        return whisky.views.summary_table_layout(table, pitches)
     elif pathname == '/about':
-        return views.about_page_layout
+        return whisky.views.about_page_layout
     elif pathname == '/detail':
-        return views.page_1_layout(pitches)
+        return whisky.views.page_1_layout(pitches)
     else:
-        return views.page_1_layout(pitches)
+        return whisky.views.page_1_layout(pitches)
     # Could also return a 404 "URL not found" page here
 
 # Show/hide the intro
