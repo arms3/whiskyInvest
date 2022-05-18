@@ -112,7 +112,7 @@ def summary_table_layout(table, pitches):
                             id='whisky-dropdown',
                             options=pitches[['formatted_whisky']].reset_index().drop_duplicates() \
                                 .rename({'formatted_whisky': 'label', 'pitchId': 'value'}, axis=1).to_dict(
-                                orient='split'),
+                                orient='records'),
                             multi=True,
                             style={'width':'100%', 'margin-bottom':50},
                         ),
@@ -183,7 +183,7 @@ def page_1_layout(pitches):
                                         id='distillery-dropdown',
                                         options=pitches[['formattedDistillery', 'distillery']].drop_duplicates() \
                                             .rename({'formattedDistillery': 'label', 'distillery': 'value'}, axis=1).to_dict(
-                                            orient='split'),
+                                            orient='records'),
                                         multi=True,
                                     ),
                                 ], width=8, style={'padding-left':'0px'}),

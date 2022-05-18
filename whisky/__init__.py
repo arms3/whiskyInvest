@@ -67,6 +67,8 @@ import whisky.views
 @app.callback(Output('page-content', 'children'),
               [Input('url', 'pathname')])
 def display_page(pathname):
+    global table
+    global pitches
     if pathname == '/':
         return whisky.views.summary_table_layout(table, pitches)
     elif pathname == '/about':

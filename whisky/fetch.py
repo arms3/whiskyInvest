@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 from requests_futures.sessions import FuturesSession
 import re
-import ast
+import json
 import os
 from scipy import stats
 
@@ -71,15 +71,17 @@ def get_pitches():
 
 
 def parse_chart(resp, *args, **kwargs):
+    print(f'Parsing chart from : {resp.url}')
     """Evaluates chart data from request object, runs as a hook within requests-futures so that data is processed in
     the background. Takes a response object and attached a dataframe to the response object."""
     # match chart container data
-    c_dat = re.search(r"Chart\.drawChart\( \$\('#chartContainer'\), (.*?)\)", resp.text).group(1)
+    c_dat = re.search(r"Chart\.drawChart\( \$\('#chartContainer'\), (.*?), 'GBP'\)", resp.text).group(1)
     # interpret as list
-    c_dat = ast.literal_eval(c_dat)
-    df = pd.DataFrame(c_dat[0])
-    df['dealDate'] = df['dealDate'].astype("datetime64[ms]")
-    df['Currency'] = c_dat[1]
+    c_dat = json.loads(c_dat)
+    df = pd.DataFrame(c_dat)
+    if c_dat != []: # not empty chart
+        df['dealDate'] = df['dealDate'].astype("datetime64[ms]")
+        df['Currency'] = 'GBP'
     resp.df = df
 
 
