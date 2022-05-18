@@ -4,8 +4,10 @@ FROM heroku/heroku:20
 WORKDIR /app
 RUN apt-get update && apt-get -y install python3-pip
 
-COPY . ./
+COPY requirements.txt ./
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-CMD ["python", "app.py"]
+COPY whisky/ ./whisky
+EXPOSE 8001
+CMD ["gunicorn", "--timeout", "300", "whisky:server", "-b", "0.0.0.0:8001"]
