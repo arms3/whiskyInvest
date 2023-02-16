@@ -13,6 +13,6 @@ dash-renderer<2
 dash-core-components<2
 dash-html-components<2
 dash-bootstrap-components<1
-werkzeug==2.0.3
+werkzeug==2.2.3
 fsspec
 s3fs
