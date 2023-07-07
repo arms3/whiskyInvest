@@ -1,5 +1,6 @@
 # Docker image build for local testing
-FROM heroku/heroku:20
+# FROM heroku/heroku:22
+FROM python:3.11
 
 WORKDIR /app
 RUN apt-get update && apt-get -y install python3-pip
